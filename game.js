@@ -90,6 +90,7 @@ function update() {
 
   // The ball fell off the bottom: back to the center.
   if (ball.y > HEIGHT) {
+    bricks = makeBricks();
     resetBall();
   }
 }
