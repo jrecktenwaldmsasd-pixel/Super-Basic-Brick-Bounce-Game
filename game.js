@@ -55,6 +55,8 @@ const paddle = {
 // THE BRICKS (the list is filled in by makeBricks() in bricks.js)
 // ------------------------------------------------------------
 let bricks = [];
+let paused = false;
+let won = false;
 
 
 // ------------------------------------------------------------
@@ -65,6 +67,9 @@ const keys = {};
 
 document.addEventListener("keydown", function (event) {
   keys[event.key.toLowerCase()] = true;
+  if (!event.repeat && event.key.toLowerCase() === "p" && !won) {
+    paused = !paused;
+  }
   // Stop the arrow keys from scrolling the page.
   if (event.key.startsWith("Arrow")) {
     event.preventDefault();
@@ -81,12 +86,21 @@ document.addEventListener("keyup", function (event) {
 // what they touched.
 // ------------------------------------------------------------
 function update() {
+  if (paused || won) {
+    return;
+  }
+
   movePaddle();
   moveBall();
 
   bounceOffWalls();   // collisions.js
   bounceOffPaddle();  // collisions.js
   bounceOffBricks();  // collisions.js
+
+  if (bricks.length === 0) {
+    won = true;
+    return;
+  }
 
   // The ball fell off the bottom: back to the center.
   if (ball.y > HEIGHT) {
@@ -131,6 +145,17 @@ function draw() {
   ctx.fillRect(ball.x, ball.y, ball.width, ball.height);
 
   drawBricks();  // bricks.js
+
+  if (paused || won) {
+    ctx.fillStyle = "rgba(0, 0, 0, 0.78)";
+    ctx.fillRect(0, 0, WIDTH, HEIGHT);
+    ctx.fillStyle = "white";
+    ctx.textAlign = "center";
+    ctx.font = "bold 36px 'Courier New', monospace";
+    ctx.fillText(won ? "YOU WIN!" : "PAUSED", WIDTH / 2, HEIGHT / 2 - 12);
+    ctx.font = "16px 'Courier New', monospace";
+    ctx.fillText(won ? "All blocks broken" : "Press P to resume", WIDTH / 2, HEIGHT / 2 + 24);
+  }
 }
 
 
