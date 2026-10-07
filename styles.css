@@ -12,6 +12,7 @@ body {
   background: #000;
   color: #fff;
   font-family: "Courier New", monospace;
+  background-image: radial-gradient(circle at top, rgba(76, 29, 149, 0.9), rgba(0, 0, 0, 0.95) 45%);
 }
 
 main {
@@ -27,10 +28,32 @@ canvas {
   height: auto;
   border: 2px solid #fff;
   background: #000;
+  box-shadow: 0 0 18px rgba(255, 255, 255, 0.4), 0 0 30px rgba(125, 92, 255, 0.35);
+  animation: borderRainbow 8s linear infinite;
 }
 
 p {
   margin: 12px 0 0;
   font-size: 14px;
   line-height: 1.5;
+  color: #fff;
+  text-shadow: 0 0 10px rgba(255, 255, 255, 0.8);
+  background: linear-gradient(90deg, #ff4d4d, #ffbf47, #47ff7d, #4db8ff, #b14dff, #ff4d9f);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: rainbowShift 6s linear infinite;
+}
+
+@keyframes rainbowShift {
+  0% { filter: hue-rotate(0deg); }
+  100% { filter: hue-rotate(360deg); }
+}
+
+@keyframes borderRainbow {
+  0% { box-shadow: 0 0 18px rgba(255, 100, 100, 0.55), 0 0 30px rgba(255, 180, 80, 0.3); }
+  25% { box-shadow: 0 0 18px rgba(120, 255, 120, 0.55), 0 0 30px rgba(80, 200, 255, 0.3); }
+  50% { box-shadow: 0 0 18px rgba(120, 170, 255, 0.55), 0 0 30px rgba(145, 100, 255, 0.3); }
+  75% { box-shadow: 0 0 18px rgba(255, 120, 220, 0.55), 0 0 30px rgba(255, 100, 160, 0.3); }
+  100% { box-shadow: 0 0 18px rgba(255, 100, 100, 0.55), 0 0 30px rgba(255, 180, 80, 0.3); }
 }

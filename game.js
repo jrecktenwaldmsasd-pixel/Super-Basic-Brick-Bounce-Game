@@ -231,6 +231,12 @@ function draw() {
 
   drawBricks();  // bricks.js
 
+  const instructions = document.getElementById("instructions");
+  if (instructions) {
+    instructions.style.color = rainbowColor(hueTime + 0.42);
+    instructions.style.textShadow = `0 0 8px ${rainbowColor(hueTime + 0.42)}`;
+  }
+
   if (paused || won) {
     ctx.fillStyle = "rgba(0, 0, 0, 0.78)";
     ctx.fillRect(0, 0, WIDTH, HEIGHT);

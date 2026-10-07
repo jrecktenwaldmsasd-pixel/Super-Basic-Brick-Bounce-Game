@@ -34,8 +34,10 @@ function makeBricks() {
 
 // Draws every brick in the list.
 function drawBricks() {
-  ctx.fillStyle = "white";
-  for (const brick of bricks) {
+  const cycle = performance.now() * 0.0008;
+  for (let i = 0; i < bricks.length; i++) {
+    const brick = bricks[i];
+    ctx.fillStyle = `hsl(${(cycle * 360 + i * 12) % 360}, 100%, 65%)`;
     ctx.fillRect(brick.x, brick.y, brick.width, brick.height);
   }
 }
