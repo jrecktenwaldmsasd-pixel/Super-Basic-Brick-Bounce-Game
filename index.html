@@ -8,7 +8,16 @@
 </head>
 <body>
   <main>
-    <canvas id="game" width="600" height="450" aria-label="Block Breaker game"></canvas>
+    <div class="game-area">
+      <canvas id="game" width="600" height="450" aria-label="Block Breaker game"></canvas>
+      <div id="gameOverlay" class="overlay">
+        <div class="overlay-panel">
+          <h2 id="overlayTitle">READY?</h2>
+          <p id="overlayMessage">Move with the arrow keys or A and D. Press P to pause or resume.</p>
+          <button id="overlayButton" type="button">Start Game</button>
+        </div>
+      </div>
+    </div>
     <p id="instructions">Move the paddle with the left and right arrow keys, or A and D. Press P to pause or resume.</p>
   </main>
 

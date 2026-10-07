@@ -23,14 +23,17 @@ function bounceOffWalls() {
   if (ball.x < 0) {
     ball.x = 0;
     ball.vx = -ball.vx;
+    playWallSound();
   }
   if (ball.x + ball.width > WIDTH) {
     ball.x = WIDTH - ball.width;
     ball.vx = -ball.vx;
+    playWallSound();
   }
   if (ball.y < 0) {
     ball.y = 0;
     ball.vy = -ball.vy;
+    playWallSound();
   }
 }
 
@@ -42,6 +45,7 @@ function bounceOffPaddle() {
   if (boxesTouch(ball, paddle) && ball.vy > 0) {
     ball.y = paddle.y - ball.height;  // sit on top of the paddle
     ball.vy = -ball.vy;
+    playPaddleSound();
   }
 }
 
@@ -76,6 +80,12 @@ function bounceOffBricks() {
       }
     }
 
+    createParticleBurst(
+      brick.x + brick.width / 2,
+      brick.y + brick.height / 2,
+      rainbowColor((performance.now() * 0.0008) + index * 0.06)
+    );
+    playBrickSound();
     bricks.splice(index, 1);
     break;  // bounce off one brick per update, then stop looking
   }
