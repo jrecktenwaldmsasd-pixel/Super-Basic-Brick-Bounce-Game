@@ -50,6 +50,23 @@ const paddle = {
   speed: 6
 };
 
+const stars = [];
+for (let i = 0; i < 140; i++) {
+  stars.push({
+    x: Math.random() * WIDTH,
+    y: Math.random() * HEIGHT,
+    radius: Math.random() * 2 + 1,
+    alpha: Math.random() * 0.8 + 0.2
+  });
+}
+
+const moon = {
+  radius: 24,
+  orbitRadius: 160,
+  angle: 0.9,
+  speed: 0.003
+};
+
 
 // ------------------------------------------------------------
 // THE BRICKS (the list is filled in by makeBricks() in bricks.js)
@@ -132,13 +149,74 @@ function moveBall() {
 }
 
 
+function drawGalaxyBackground() {
+  const galaxy = ctx.createRadialGradient(
+    WIDTH * 0.68,
+    HEIGHT * 0.3,
+    20,
+    WIDTH * 0.68,
+    HEIGHT * 0.3,
+    WIDTH * 0.8
+  );
+  galaxy.addColorStop(0, "#312e81");
+  galaxy.addColorStop(0.35, "#111827");
+  galaxy.addColorStop(1, "#020617");
+  ctx.fillStyle = galaxy;
+  ctx.fillRect(0, 0, WIDTH, HEIGHT);
+
+  for (const star of stars) {
+    ctx.fillStyle = `rgba(255, 255, 255, ${star.alpha})`;
+    ctx.beginPath();
+    ctx.arc(star.x, star.y, star.radius, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  ctx.strokeStyle = "rgba(148, 163, 184, 0.18)";
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.arc(WIDTH / 2, HEIGHT / 2, moon.orbitRadius, 0, Math.PI * 2);
+  ctx.stroke();
+}
+
+function drawMoon() {
+  const moonX = WIDTH / 2 + Math.cos(moon.angle) * moon.orbitRadius;
+  const moonY = HEIGHT / 2 + Math.sin(moon.angle) * moon.orbitRadius;
+
+  ctx.save();
+  ctx.translate(moonX, moonY);
+
+  const glow = ctx.createRadialGradient(0, 0, 4, 0, 0, moon.radius + 20);
+  glow.addColorStop(0, "rgba(255, 255, 255, 0.9)");
+  glow.addColorStop(0.4, "rgba(191, 219, 254, 0.7)");
+  glow.addColorStop(1, "rgba(148, 163, 184, 0)");
+  ctx.fillStyle = glow;
+  ctx.beginPath();
+  ctx.arc(0, 0, moon.radius + 20, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.fillStyle = "#e2e8f0";
+  ctx.beginPath();
+  ctx.arc(0, 0, moon.radius, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.fillStyle = "rgba(148, 163, 184, 0.4)";
+  ctx.beginPath();
+  ctx.arc(-8, -8, 6, 0, Math.PI * 2);
+  ctx.arc(8, -4, 4, 0, Math.PI * 2);
+  ctx.arc(0, 10, 5, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.restore();
+  moon.angle += moon.speed;
+}
+
 // ------------------------------------------------------------
 // DRAW: paints everything on the canvas. Black background,
 // white shapes.
 // ------------------------------------------------------------
 function draw() {
-  ctx.fillStyle = "black";
-  ctx.fillRect(0, 0, WIDTH, HEIGHT);
+  drawGalaxyBackground();
+  drawMoon();
 
   ctx.fillStyle = "white";
   ctx.fillRect(paddle.x, paddle.y, paddle.width, paddle.height);
