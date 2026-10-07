@@ -67,6 +67,10 @@ const moon = {
   speed: 0.003
 };
 
+function rainbowColor(t) {
+  const hue = (t * 360) % 360;
+  return `hsl(${hue}, 100%, 65%)`;
+}
 
 // ------------------------------------------------------------
 // THE BRICKS (the list is filled in by makeBricks() in bricks.js)
@@ -218,8 +222,11 @@ function draw() {
   drawGalaxyBackground();
   drawMoon();
 
-  ctx.fillStyle = "white";
+  const hueTime = performance.now() * 0.0007;
+
+  ctx.fillStyle = rainbowColor(hueTime);
   ctx.fillRect(paddle.x, paddle.y, paddle.width, paddle.height);
+  ctx.fillStyle = rainbowColor(hueTime + 0.18);
   ctx.fillRect(ball.x, ball.y, ball.width, ball.height);
 
   drawBricks();  // bricks.js
@@ -227,7 +234,7 @@ function draw() {
   if (paused || won) {
     ctx.fillStyle = "rgba(0, 0, 0, 0.78)";
     ctx.fillRect(0, 0, WIDTH, HEIGHT);
-    ctx.fillStyle = "white";
+    ctx.fillStyle = rainbowColor(hueTime + 0.35);
     ctx.textAlign = "center";
     ctx.font = "bold 36px 'Courier New', monospace";
     ctx.fillText(won ? "YOU WIN!" : "PAUSED", WIDTH / 2, HEIGHT / 2 - 12);
