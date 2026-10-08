@@ -32,8 +32,8 @@
         const data = entity.component;
 
         if (data.controlled) {
-          const movingLeft = keys["arrowleft"] || keys["a"];
-          const movingRight = keys["arrowright"] || keys["d"];
+          const movingLeft = Boolean(keys["arrowleft"] || keys["a"]);
+          const movingRight = Boolean(keys["arrowright"] || keys["d"]);
           data.vx = (movingRight - movingLeft) * data.speed;
         }
 
