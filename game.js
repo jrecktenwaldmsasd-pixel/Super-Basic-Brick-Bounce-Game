@@ -231,8 +231,12 @@ function startNewGame() {
 const keys = {};
 
 document.addEventListener("keydown", function (event) {
-  keys[event.key.toLowerCase()] = true;
-  if (!event.repeat && event.key.toLowerCase() === "p") {
+  const key = event.key.toLowerCase();
+  keys[key] = true;
+  if (!event.repeat && key === "r" && state === "gameOver") {
+    startNewGame();
+  }
+  if (!event.repeat && key === "p") {
     if (state === "playing") {
       paused = true;
       state = "paused";
@@ -287,7 +291,7 @@ function update() {
     if (lives <= 0) {
       state = "gameOver";
       playLoseSound();
-      showOverlay("GAME OVER", "The moon won this round. Try again!", "Restart Game");
+      showOverlay("GAME OVER", "The moon won this round. Press R or use the button to try again.", "Restart Game");
       return;
     }
 
@@ -521,7 +525,7 @@ function start() {
   paused = false;
   won = false;
   lives = 3;
-  showOverlay("READY?", "Move with the arrow keys or A and D. Press P to pause or resume.", "Start Game");
+  showOverlay("READY?", "Move with the arrow keys or A and D. Press P to pause or resume. Press R to restart after game over.", "Start Game");
   requestAnimationFrame(frame);
 }
 
