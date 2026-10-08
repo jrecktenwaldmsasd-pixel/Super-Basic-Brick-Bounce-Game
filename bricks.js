@@ -21,10 +21,13 @@ function makeBricks() {
   for (let row = 0; row < BRICK_ROWS; row++) {
     for (let col = 0; col < BRICK_COLUMNS; col++) {
       list.push({
-        x: left + col * (BRICK_WIDTH + BRICK_GAP),
-        y: BRICKS_TOP + row * (BRICK_HEIGHT + BRICK_GAP),
-        width: BRICK_WIDTH,
-        height: BRICK_HEIGHT
+        component: {
+          ...component,
+          x: left + col * (BRICK_WIDTH + BRICK_GAP),
+          y: BRICKS_TOP + row * (BRICK_HEIGHT + BRICK_GAP),
+          width: BRICK_WIDTH,
+          height: BRICK_HEIGHT
+        }
       });
     }
   }
@@ -37,7 +40,8 @@ function drawBricks() {
   const cycle = performance.now() * 0.0008;
   for (let i = 0; i < bricks.length; i++) {
     const brick = bricks[i];
+    const data = brick.component;
     ctx.fillStyle = `hsl(${(cycle * 360 + i * 12) % 360}, 100%, 65%)`;
-    ctx.fillRect(brick.x, brick.y, brick.width, brick.height);
+    ctx.fillRect(data.x, data.y, data.width, data.height);
   }
 }

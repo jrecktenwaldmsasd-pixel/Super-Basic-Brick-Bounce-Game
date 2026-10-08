@@ -92,20 +92,19 @@ function playLoseSound() {
 const BALL_SPEED = 4;
 
 const ball = {
-  x: 0,
-  y: 0,
-  width: 12,
-  height: 12,
-  vx: 0,
-  vy: 0
+  component: {
+    ...component,
+    width: 12,
+    height: 12
+  }
 };
 
 // Put the ball in the center and reset its speed and direction.
 function resetBall() {
-  ball.x = WIDTH / 2 - ball.width / 2;
-  ball.y = HEIGHT / 2 - ball.height / 2;
-  ball.vx = BALL_SPEED;  // right
-  ball.vy = BALL_SPEED;  // down
+  ball.component.x = WIDTH / 2 - ball.component.width / 2;
+  ball.component.y = HEIGHT / 2 - ball.component.height / 2;
+  ball.component.vx = BALL_SPEED;  // right
+  ball.component.vy = BALL_SPEED;  // down
 }
 
 
@@ -113,11 +112,15 @@ function resetBall() {
 // THE PADDLE
 // ------------------------------------------------------------
 const paddle = {
-  x: WIDTH / 2 - 45,
-  y: HEIGHT - 30,
-  width: 90,
-  height: 12,
-  speed: 6
+  component: {
+    ...component,
+    x: WIDTH / 2 - 45,
+    y: HEIGHT - 30,
+    width: 90,
+    height: 12,
+    speed: 6,
+    controlled: true
+  }
 };
 
 const stars = [];
@@ -263,8 +266,7 @@ function update() {
     return;
   }
 
-  movePaddle();
-  moveBall();
+  system();
 
   bounceOffWalls();   // collisions.js
   bounceOffPaddle();  // collisions.js
@@ -279,7 +281,7 @@ function update() {
   }
 
   // The ball fell off the bottom: back to the center.
-  if (ball.y > HEIGHT) {
+  if (ball.component.y > HEIGHT) {
     lives = lives - 1;
 
     if (lives <= 0) {
@@ -293,29 +295,6 @@ function update() {
     resetBall();
   }
 }
-
-function movePaddle() {
-  if (keys["arrowleft"] || keys["a"]) {
-    paddle.x = paddle.x - paddle.speed;
-  }
-  if (keys["arrowright"] || keys["d"]) {
-    paddle.x = paddle.x + paddle.speed;
-  }
-
-  // Keep the paddle on the screen.
-  if (paddle.x < 0) {
-    paddle.x = 0;
-  }
-  if (paddle.x + paddle.width > WIDTH) {
-    paddle.x = WIDTH - paddle.width;
-  }
-}
-
-function moveBall() {
-  ball.x = ball.x + ball.vx;
-  ball.y = ball.y + ball.vy;
-}
-
 
 function updateShootingStars() {
   for (const star of shootingStars) {
@@ -469,14 +448,24 @@ function draw() {
   ctx.shadowBlur = 26;
   ctx.shadowColor = rainbowColor(hueTime);
   ctx.fillStyle = rainbowColor(hueTime);
-  ctx.fillRect(paddle.x, paddle.y, paddle.width, paddle.height);
+  ctx.fillRect(
+    paddle.component.x,
+    paddle.component.y,
+    paddle.component.width,
+    paddle.component.height
+  );
   ctx.restore();
 
   ctx.save();
   ctx.shadowBlur = 30;
   ctx.shadowColor = rainbowColor(hueTime + 0.18);
   ctx.fillStyle = rainbowColor(hueTime + 0.18);
-  ctx.fillRect(ball.x, ball.y, ball.width, ball.height);
+  ctx.fillRect(
+    ball.component.x,
+    ball.component.y,
+    ball.component.width,
+    ball.component.height
+  );
   ctx.restore();
 
   drawBricks();  // bricks.js

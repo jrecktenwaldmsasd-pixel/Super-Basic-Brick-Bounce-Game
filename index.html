@@ -21,9 +21,30 @@
     <p id="instructions">Move the paddle with the left and right arrow keys, or A and D. Press P to pause or resume.</p>
   </main>
 
-  <!-- The order matters: game.js goes first because the other files use its settings. -->
+  <!-- The order matters: components.js defines data used by the game entities. -->
+  <script src="components.js"></script>
   <script src="game.js"></script>
   <script src="bricks.js"></script>
   <script src="collisions.js"></script>
+  <script>
+    function system() {
+      for (const entity of [ball, paddle]) {
+        const data = entity.component;
+
+        if (data.controlled) {
+          const movingLeft = keys["arrowleft"] || keys["a"];
+          const movingRight = keys["arrowright"] || keys["d"];
+          data.vx = (movingRight - movingLeft) * data.speed;
+        }
+
+        data.x += data.vx;
+        data.y += data.vy;
+
+        if (data.controlled) {
+          data.x = Math.max(0, Math.min(WIDTH - data.width, data.x));
+        }
+      }
+    }
+  </script>
 </body>
 </html>
