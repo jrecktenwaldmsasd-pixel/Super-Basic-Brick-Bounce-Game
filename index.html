@@ -10,8 +10,22 @@
   <main>
     <div class="game-area">
       <div class="hud" aria-live="polite">
-        <span class="hud-label">Lives</span>
-        <span id="livesValue">3</span>
+        <div class="hud-item">
+          <span class="hud-label">Lives</span>
+          <span id="livesValue">3</span>
+        </div>
+        <div class="hud-item">
+          <span class="hud-label">Score</span>
+          <span id="scoreValue">0</span>
+        </div>
+        <div class="hud-item">
+          <span class="hud-label">Best</span>
+          <span id="bestScoreValue">0</span>
+        </div>
+        <div class="hud-item">
+          <span class="hud-label">Level</span>
+          <span id="levelValue">1</span>
+        </div>
       </div>
       <canvas id="game" width="600" height="450" aria-label="Block Breaker game"></canvas>
       <div id="gameOverlay" class="overlay">
@@ -32,21 +46,16 @@
   <script src="collisions.js"></script>
   <script>
     function system() {
-      for (const entity of [ball, paddle]) {
-        const data = entity.component;
+      const movingLeft = Boolean(keys["arrowleft"] || keys["a"]);
+      const movingRight = Boolean(keys["arrowright"] || keys["d"]);
+      paddle.component.vx = (movingRight - movingLeft) * paddle.component.speed;
+      paddle.component.x += paddle.component.vx;
+      paddle.component.x = Math.max(0, Math.min(WIDTH - paddle.component.width, paddle.component.x));
 
-        if (data.controlled) {
-          const movingLeft = Boolean(keys["arrowleft"] || keys["a"]);
-          const movingRight = Boolean(keys["arrowright"] || keys["d"]);
-          data.vx = (movingRight - movingLeft) * data.speed;
-        }
-
+      for (const activeBall of balls) {
+        const data = activeBall.component;
         data.x += data.vx;
         data.y += data.vy;
-
-        if (data.controlled) {
-          data.x = Math.max(0, Math.min(WIDTH - data.width, data.x));
-        }
       }
     }
   </script>

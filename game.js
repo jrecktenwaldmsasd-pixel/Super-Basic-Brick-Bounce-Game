@@ -90,21 +90,89 @@ function playLoseSound() {
 // A positive vy means the ball is moving DOWN the screen.
 // ------------------------------------------------------------
 const BALL_SPEED = 4;
+const MAX_BALL_SPEED = 7;
+const BASE_PADDLE_WIDTH = 90;
+const POWER_UP_TYPES = ["life", "paddle", "slow", "multi"];
+let level = 1;
 
-const ball = {
-  component: {
-    ...component,
-    width: 12,
-    height: 12
-  }
-};
+function getCurrentBallSpeed() {
+  return Math.min(BALL_SPEED + (level - 1) * 0.4, MAX_BALL_SPEED);
+}
 
-// Put the ball in the center and reset its speed and direction.
+function makeBall(x = WIDTH / 2, y = HEIGHT / 2, vx = BALL_SPEED, vy = BALL_SPEED) {
+  return {
+    component: {
+      ...component,
+      x,
+      y,
+      width: 12,
+      height: 12,
+      vx,
+      vy
+    }
+  };
+}
+
+const ball = makeBall();
+let balls = [ball];
+let paddleBoostTimer = 0;
+let slowBallTimer = 0;
+const powerUps = [];
+
 function resetBall() {
-  ball.component.x = WIDTH / 2 - ball.component.width / 2;
-  ball.component.y = HEIGHT / 2 - ball.component.height / 2;
-  ball.component.vx = BALL_SPEED;  // right
-  ball.component.vy = BALL_SPEED;  // down
+  const nextBall = makeBall(
+    WIDTH / 2 - 6,
+    HEIGHT / 2 - 6,
+    BALL_SPEED,
+    BALL_SPEED
+  );
+  ball.component = nextBall.component;
+  balls = [ball];
+}
+
+function applyBallSpeedSettings() {
+  const baseSpeed = getCurrentBallSpeed();
+  const targetSpeed = slowBallTimer > 0 ? baseSpeed * 0.7 : baseSpeed;
+
+  for (const activeBall of balls) {
+    const ballData = activeBall.component;
+    const currentSpeed = Math.hypot(ballData.vx, ballData.vy) || targetSpeed;
+    const angle = Math.atan2(ballData.vy, ballData.vx);
+    ballData.vx = Math.cos(angle) * targetSpeed;
+    ballData.vy = Math.sin(angle) * targetSpeed;
+    if (currentSpeed === 0) {
+      ballData.vx = BALL_SPEED;
+      ballData.vy = BALL_SPEED;
+    }
+  }
+}
+
+function spawnMultiball() {
+  const newBalls = [];
+  const currentBalls = [...balls];
+
+  for (const activeBall of currentBalls) {
+    const ballData = activeBall.component;
+    const angle = Math.atan2(ballData.vy, ballData.vx);
+    const speed = Math.hypot(ballData.vx, ballData.vy) || BALL_SPEED;
+    const leftAngle = angle - 0.65;
+    const rightAngle = angle + 0.65;
+
+    newBalls.push(makeBall(
+      ballData.x,
+      ballData.y,
+      Math.cos(leftAngle) * speed,
+      Math.sin(leftAngle) * speed
+    ));
+    newBalls.push(makeBall(
+      ballData.x,
+      ballData.y,
+      Math.cos(rightAngle) * speed,
+      Math.sin(rightAngle) * speed
+    ));
+  }
+
+  balls.push(...newBalls);
 }
 
 
@@ -116,7 +184,7 @@ const paddle = {
     ...component,
     x: WIDTH / 2 - 45,
     y: HEIGHT - 30,
-    width: 90,
+    width: BASE_PADDLE_WIDTH,
     height: 12,
     speed: 6,
     controlled: true
@@ -189,6 +257,79 @@ function updateParticles() {
   }
 }
 
+function spawnPowerUp(x, y) {
+  const type = POWER_UP_TYPES[Math.floor(Math.random() * POWER_UP_TYPES.length)];
+  powerUps.push({
+    type,
+    x,
+    y,
+    size: 12,
+    speed: 1.5,
+    color: {
+      life: "#fbbf24",
+      paddle: "#34d399",
+      slow: "#60a5fa",
+      multi: "#f472b6"
+    }[type]
+  });
+}
+
+function updatePowerUps() {
+  for (let i = powerUps.length - 1; i >= 0; i--) {
+    const powerUp = powerUps[i];
+    powerUp.y += powerUp.speed;
+
+    if (powerUp.y > HEIGHT + powerUp.size) {
+      powerUps.splice(i, 1);
+    }
+  }
+}
+
+function activatePowerUp(type) {
+  if (type === "life") {
+    lives += 1;
+    updateLivesDisplay();
+    return;
+  }
+
+  if (type === "paddle") {
+    paddle.component.width = BASE_PADDLE_WIDTH * 1.5;
+    paddleBoostTimer = 600;
+    paddle.component.x = Math.min(paddle.component.x, WIDTH - paddle.component.width);
+    return;
+  }
+
+  if (type === "slow") {
+    slowBallTimer = 600;
+    return;
+  }
+
+  if (type === "multi") {
+    spawnMultiball();
+  }
+}
+
+function drawPowerUps() {
+  for (const powerUp of powerUps) {
+    ctx.fillStyle = powerUp.color;
+    ctx.fillRect(powerUp.x - powerUp.size / 2, powerUp.y - powerUp.size / 2, powerUp.size, powerUp.size);
+
+    ctx.fillStyle = "#020617";
+    ctx.font = "bold 10px Courier New";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+
+    const labels = {
+      life: "+",
+      paddle: "P",
+      slow: "S",
+      multi: "M"
+    };
+
+    ctx.fillText(labels[powerUp.type], powerUp.x, powerUp.y + 1);
+  }
+}
+
 // ------------------------------------------------------------
 // THE BRICKS (the list is filled in by makeBricks() in bricks.js)
 // ------------------------------------------------------------
@@ -203,11 +344,41 @@ const overlayTitle = document.getElementById("overlayTitle");
 const overlayMessage = document.getElementById("overlayMessage");
 const overlayButton = document.getElementById("overlayButton");
 const livesValue = document.getElementById("livesValue");
+const scoreValue = document.getElementById("scoreValue");
+const bestScoreValue = document.getElementById("bestScoreValue");
+const levelValue = document.getElementById("levelValue");
+
+let score = 0;
+let bestScore = Number(localStorage.getItem("brick-breaker-best-score") || 0);
 
 function updateLivesDisplay() {
   if (livesValue) {
     livesValue.textContent = String(lives);
   }
+}
+
+function updateScoreDisplay() {
+  if (scoreValue) {
+    scoreValue.textContent = String(score);
+  }
+
+  if (bestScoreValue) {
+    bestScoreValue.textContent = String(bestScore);
+  }
+}
+
+function updateLevelDisplay() {
+  if (levelValue) {
+    levelValue.textContent = String(level);
+  }
+}
+
+function updateBestScore() {
+  if (score > bestScore) {
+    bestScore = score;
+    localStorage.setItem("brick-breaker-best-score", String(bestScore));
+  }
+  updateScoreDisplay();
 }
 
 function showOverlay(title, message, buttonText) {
@@ -223,12 +394,30 @@ function hideOverlay() {
 
 function startNewGame() {
   lives = 3;
+  score = 0;
+  level = 1;
+  paddleBoostTimer = 0;
+  slowBallTimer = 0;
+  paddle.component.width = BASE_PADDLE_WIDTH;
+  powerUps.length = 0;
   updateLivesDisplay();
+  updateScoreDisplay();
+  updateLevelDisplay();
   paused = false;
   won = false;
   state = "playing";
-  bricks = makeBricks();
+  bricks = makeBricks(level);
   resetBall();
+  hideOverlay();
+}
+
+function startNextLevel() {
+  level += 1;
+  updateLevelDisplay();
+  bricks = makeBricks(level);
+  powerUps.length = 0;
+  resetBall();
+  state = "playing";
   hideOverlay();
 }
 
@@ -273,39 +462,80 @@ document.addEventListener("keyup", function (event) {
 function update() {
   updateParticles();
   updateShootingStars();
+  updatePowerUps();
 
   if (state !== "playing" || paused || won) {
     return;
   }
 
+  if (paddleBoostTimer > 0) {
+    paddleBoostTimer -= 1;
+    if (paddleBoostTimer <= 0) {
+      paddle.component.width = BASE_PADDLE_WIDTH;
+      paddle.component.x = Math.min(paddle.component.x, WIDTH - paddle.component.width);
+    }
+  }
+
+  if (slowBallTimer > 0) {
+    slowBallTimer -= 1;
+  }
+
+  applyBallSpeedSettings();
   system();
 
-  bounceOffWalls();   // collisions.js
-  bounceOffPaddle();  // collisions.js
-  bounceOffBricks();  // collisions.js
+  for (const activeBall of [...balls]) {
+    bounceOffWalls(activeBall); // collisions.js
+    bounceOffPaddle(activeBall); // collisions.js
+  }
+
+  for (const activeBall of [...balls]) {
+    bounceOffBricks(activeBall); // collisions.js
+  }
+
+  for (const powerUp of [...powerUps]) {
+    const powerUpBox = {
+      component: {
+        x: powerUp.x,
+        y: powerUp.y,
+        width: powerUp.size,
+        height: powerUp.size
+      }
+    };
+    if (boxesTouch(powerUpBox, paddle)) {
+      activatePowerUp(powerUp.type);
+      powerUps.splice(powerUps.indexOf(powerUp), 1);
+    }
+  }
 
   if (bricks.length === 0) {
-    won = true;
-    state = "won";
+    powerUps.length = 0;
+    state = "levelComplete";
     playWinSound();
-    showOverlay("YOU WIN!", "All blocks broken — the galaxy is yours.", "Play Again");
+    showOverlay(
+      "LEVEL COMPLETE",
+      `Get ready for level ${level + 1}. The ball gets faster and the brick wall grows.`,
+      "Next Level"
+    );
     return;
   }
 
-  // The ball fell off the bottom: back to the center.
-  if (ball.component.y > HEIGHT) {
-    lives = lives - 1;
-    updateLivesDisplay();
+  const fallenBalls = balls.filter((activeBall) => activeBall.component.y > HEIGHT);
+  if (fallenBalls.length > 0) {
+    balls = balls.filter((activeBall) => activeBall.component.y <= HEIGHT);
+    if (balls.length === 0) {
+      lives = lives - 1;
+      updateLivesDisplay();
 
-    if (lives <= 0) {
-      state = "gameOver";
-      playLoseSound();
-      showOverlay("GAME OVER", "The moon won this round. Press R or use the button to try again.", "Restart Game");
-      return;
+      if (lives <= 0) {
+        state = "gameOver";
+        playLoseSound();
+        showOverlay("GAME OVER", "The moon won this round. Press R or use the button to try again.", "Restart Game");
+        return;
+      }
+
+      bricks = makeBricks(level);
+      resetBall();
     }
-
-    bricks = makeBricks();
-    resetBall();
   }
 }
 
@@ -469,19 +699,22 @@ function draw() {
   );
   ctx.restore();
 
-  ctx.save();
-  ctx.shadowBlur = 30;
-  ctx.shadowColor = rainbowColor(hueTime + 0.18);
-  ctx.fillStyle = rainbowColor(hueTime + 0.18);
-  ctx.fillRect(
-    ball.component.x,
-    ball.component.y,
-    ball.component.width,
-    ball.component.height
-  );
-  ctx.restore();
+  for (const activeBall of balls) {
+    ctx.save();
+    ctx.shadowBlur = 30;
+    ctx.shadowColor = rainbowColor(hueTime + 0.18);
+    ctx.fillStyle = rainbowColor(hueTime + 0.18);
+    ctx.fillRect(
+      activeBall.component.x,
+      activeBall.component.y,
+      activeBall.component.width,
+      activeBall.component.height
+    );
+    ctx.restore();
+  }
 
   drawBricks();  // bricks.js
+  drawPowerUps();
 
   for (const particle of particles) {
     ctx.fillStyle = particle.color;
@@ -534,14 +767,25 @@ function start() {
   paused = false;
   won = false;
   lives = 3;
+  score = 0;
+  level = 1;
+  powerUps.length = 0;
+  paddle.component.width = BASE_PADDLE_WIDTH;
   updateLivesDisplay();
+  updateScoreDisplay();
+  updateLevelDisplay();
   showOverlay("READY?", "Move with the arrow keys or A and D. Press P to pause or resume. Press R to restart after game over.", "Start Game");
   requestAnimationFrame(frame);
 }
 
 overlayButton.addEventListener("click", function () {
-  if (state === "start" || state === "gameOver" || state === "won") {
+  if (state === "start" || state === "gameOver") {
     startNewGame();
+    return;
+  }
+
+  if (state === "levelComplete") {
+    startNextLevel();
     return;
   }
 

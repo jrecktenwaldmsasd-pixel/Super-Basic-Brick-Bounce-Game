@@ -21,8 +21,8 @@ function boxesTouch(a, b) {
 
 // The ball bounces off the left, right, and top walls.
 // (The bottom is not a wall: falling off the bottom resets the ball.)
-function bounceOffWalls() {
-  const data = ball.component;
+function bounceOffWalls(currentBall) {
+  const data = currentBall.component;
   if (data.x < 0) {
     data.x = 0;
     data.vx = -data.vx;
@@ -44,10 +44,10 @@ function bounceOffWalls() {
 // The ball bounces off the top of the paddle.
 // ball.vy > 0 means "the ball is moving down", so it only bounces
 // when it is falling onto the paddle.
-function bounceOffPaddle() {
-  const ballData = ball.component;
+function bounceOffPaddle(currentBall) {
+  const ballData = currentBall.component;
   const paddleData = paddle.component;
-  if (boxesTouch(ball, paddle) && ballData.vy > 0) {
+  if (boxesTouch(currentBall, paddle) && ballData.vy > 0) {
     ballData.y = paddleData.y - ballData.height;  // sit on top of the paddle
     ballData.vy = -ballData.vy;
     playPaddleSound();
@@ -56,12 +56,12 @@ function bounceOffPaddle() {
 
 
 // The ball bounces off and breaks the brick it touches.
-function bounceOffBricks() {
+function bounceOffBricks(currentBall) {
   for (let index = 0; index < bricks.length; index++) {
     const brick = bricks[index];
-    const ballData = ball.component;
+    const ballData = currentBall.component;
     const brickData = brick.component;
-    if (!boxesTouch(ball, brick)) {
+    if (!boxesTouch(currentBall, brick)) {
       continue;  // not touching this brick, check the next one
     }
 
@@ -87,6 +87,14 @@ function bounceOffBricks() {
       }
     }
 
+    score += 10;
+    updateBestScore();
+    if (Math.random() < 0.22) {
+      spawnPowerUp(
+        brickData.x + brickData.width / 2,
+        brickData.y + brickData.height / 2
+      );
+    }
     createParticleBurst(
       brickData.x + brickData.width / 2,
       brickData.y + brickData.height / 2,
