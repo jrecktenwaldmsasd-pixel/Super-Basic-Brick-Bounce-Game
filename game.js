@@ -202,6 +202,13 @@ const overlay = document.getElementById("gameOverlay");
 const overlayTitle = document.getElementById("overlayTitle");
 const overlayMessage = document.getElementById("overlayMessage");
 const overlayButton = document.getElementById("overlayButton");
+const livesValue = document.getElementById("livesValue");
+
+function updateLivesDisplay() {
+  if (livesValue) {
+    livesValue.textContent = String(lives);
+  }
+}
 
 function showOverlay(title, message, buttonText) {
   overlayTitle.textContent = title;
@@ -216,6 +223,7 @@ function hideOverlay() {
 
 function startNewGame() {
   lives = 3;
+  updateLivesDisplay();
   paused = false;
   won = false;
   state = "playing";
@@ -287,6 +295,7 @@ function update() {
   // The ball fell off the bottom: back to the center.
   if (ball.component.y > HEIGHT) {
     lives = lives - 1;
+    updateLivesDisplay();
 
     if (lives <= 0) {
       state = "gameOver";
@@ -525,6 +534,7 @@ function start() {
   paused = false;
   won = false;
   lives = 3;
+  updateLivesDisplay();
   showOverlay("READY?", "Move with the arrow keys or A and D. Press P to pause or resume. Press R to restart after game over.", "Start Game");
   requestAnimationFrame(frame);
 }
