@@ -31,6 +31,10 @@ function ensureAudioContext() {
 }
 
 function playTone(frequency, duration = 0.08, volume = 0.05, type = "sine", sweep = 0) {
+  if (soundMuted) {
+    return;
+  }
+
   const context = ensureAudioContext();
   if (!context) {
     return;
@@ -93,10 +97,19 @@ const BALL_SPEED = 4;
 const MAX_BALL_SPEED = 7;
 const BASE_PADDLE_WIDTH = 90;
 const POWER_UP_TYPES = ["life", "paddle", "slow", "multi"];
+const DIFFICULTIES = {
+  easy: { speedMultiplier: 0.8, startingLives: 5 },
+  normal: { speedMultiplier: 1, startingLives: 3 },
+  hard: { speedMultiplier: 1.2, startingLives: 2 }
+};
+let selectedDifficulty = "normal";
 let level = 1;
 
 function getCurrentBallSpeed() {
-  return Math.min(BALL_SPEED + (level - 1) * 0.4, MAX_BALL_SPEED);
+  return Math.min(
+    (BALL_SPEED + (level - 1) * 0.4) * DIFFICULTIES[selectedDifficulty].speedMultiplier,
+    MAX_BALL_SPEED
+  );
 }
 
 function makeBall(x = WIDTH / 2, y = HEIGHT / 2, vx = BALL_SPEED, vy = BALL_SPEED) {
@@ -223,6 +236,7 @@ for (let i = 0; i < 6; i++) {
 }
 
 const particles = [];
+let shakeTimer = 0;
 
 function rainbowColor(t) {
   const hue = (t * 360) % 360;
@@ -338,6 +352,7 @@ let paused = false;
 let won = false;
 let state = "start";
 let lives = 3;
+let soundMuted = localStorage.getItem("brick-breaker-muted") === "true";
 
 const overlay = document.getElementById("gameOverlay");
 const overlayTitle = document.getElementById("overlayTitle");
@@ -347,6 +362,20 @@ const livesValue = document.getElementById("livesValue");
 const scoreValue = document.getElementById("scoreValue");
 const bestScoreValue = document.getElementById("bestScoreValue");
 const levelValue = document.getElementById("levelValue");
+const difficultySelect = document.getElementById("difficultySelect");
+const difficultyControl = difficultySelect.closest(".difficulty-control");
+const muteButton = document.getElementById("muteButton");
+
+function updateMuteButton() {
+  muteButton.textContent = soundMuted ? "Sound: Off" : "Sound: On";
+  muteButton.setAttribute("aria-pressed", String(soundMuted));
+}
+
+muteButton.addEventListener("click", function () {
+  soundMuted = !soundMuted;
+  localStorage.setItem("brick-breaker-muted", String(soundMuted));
+  updateMuteButton();
+});
 
 let score = 0;
 let bestScore = Number(localStorage.getItem("brick-breaker-best-score") || 0);
@@ -385,6 +414,7 @@ function showOverlay(title, message, buttonText) {
   overlayTitle.textContent = title;
   overlayMessage.textContent = message;
   overlayButton.textContent = buttonText;
+  difficultyControl.hidden = title !== "READY?" && title !== "GAME OVER";
   overlay.classList.remove("hidden");
 }
 
@@ -393,16 +423,19 @@ function hideOverlay() {
 }
 
 function startNewGame() {
-  lives = 3;
+  selectedDifficulty = difficultySelect.value;
+  lives = DIFFICULTIES[selectedDifficulty].startingLives;
   score = 0;
   level = 1;
   paddleBoostTimer = 0;
   slowBallTimer = 0;
+  shakeTimer = 0;
   paddle.component.width = BASE_PADDLE_WIDTH;
   powerUps.length = 0;
   updateLivesDisplay();
   updateScoreDisplay();
   updateLevelDisplay();
+  updateMuteButton();
   paused = false;
   won = false;
   state = "playing";
@@ -426,6 +459,46 @@ function startNextLevel() {
 // keys["arrowleft"] is true while the left arrow is held down.
 // ------------------------------------------------------------
 const keys = {};
+let pointerControlId = null;
+let pointerPaddleX = null;
+
+function getCanvasX(event) {
+  const bounds = canvas.getBoundingClientRect();
+  return (event.clientX - bounds.left) * (WIDTH / bounds.width);
+}
+
+function movePaddleToPointer() {
+  if (pointerPaddleX !== null) {
+    paddle.component.x = Math.max(
+      0,
+      Math.min(WIDTH - paddle.component.width, pointerPaddleX - paddle.component.width / 2)
+    );
+  }
+}
+
+canvas.addEventListener("pointerdown", function (event) {
+  pointerControlId = event.pointerId;
+  pointerPaddleX = getCanvasX(event);
+  movePaddleToPointer();
+  canvas.setPointerCapture(event.pointerId);
+});
+
+canvas.addEventListener("pointermove", function (event) {
+  if (event.pointerId === pointerControlId) {
+    pointerPaddleX = getCanvasX(event);
+    movePaddleToPointer();
+  }
+});
+
+function stopPointerControl(event) {
+  if (event.pointerId === pointerControlId) {
+    pointerControlId = null;
+    pointerPaddleX = null;
+  }
+}
+
+canvas.addEventListener("pointerup", stopPointerControl);
+canvas.addEventListener("pointercancel", stopPointerControl);
 
 document.addEventListener("keydown", function (event) {
   const key = event.key.toLowerCase();
@@ -465,7 +538,14 @@ function update() {
   updatePowerUps();
 
   if (state !== "playing" || paused || won) {
+    if (shakeTimer > 0) {
+      shakeTimer -= 1;
+    }
     return;
+  }
+
+  if (shakeTimer > 0) {
+    shakeTimer -= 1;
   }
 
   if (paddleBoostTimer > 0) {
@@ -481,6 +561,7 @@ function update() {
   }
 
   applyBallSpeedSettings();
+  moveBricks();
   system();
 
   for (const activeBall of [...balls]) {
@@ -524,6 +605,12 @@ function update() {
     balls = balls.filter((activeBall) => activeBall.component.y <= HEIGHT);
     if (balls.length === 0) {
       lives = lives - 1;
+      shakeTimer = 24;
+      createParticleBurst(
+        paddle.component.x + paddle.component.width / 2,
+        HEIGHT - 10,
+        "#f87171"
+      );
       updateLivesDisplay();
 
       if (lives <= 0) {
@@ -682,6 +769,15 @@ function drawMoon() {
 // white shapes.
 // ------------------------------------------------------------
 function draw() {
+  ctx.save();
+  if (shakeTimer > 0) {
+    const shakeStrength = shakeTimer * 0.65;
+    ctx.translate(
+      (Math.random() - 0.5) * shakeStrength,
+      (Math.random() - 0.5) * shakeStrength
+    );
+  }
+
   drawGalaxyBackground();
   drawMoon();
 
@@ -722,6 +818,7 @@ function draw() {
     ctx.fillRect(particle.x, particle.y, particle.size, particle.size);
   }
   ctx.globalAlpha = 1;
+  ctx.restore();
 
   const instructions = document.getElementById("instructions");
   if (instructions) {
@@ -766,7 +863,7 @@ function start() {
   state = "start";
   paused = false;
   won = false;
-  lives = 3;
+  lives = DIFFICULTIES[selectedDifficulty].startingLives;
   score = 0;
   level = 1;
   powerUps.length = 0;

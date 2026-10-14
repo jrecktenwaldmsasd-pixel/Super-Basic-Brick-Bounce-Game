@@ -47,6 +47,7 @@ main {
   text-transform: uppercase;
   box-shadow: 0 0 18px rgba(168, 85, 247, 0.3);
   pointer-events: none;
+  max-width: calc(100% - 24px);
 }
 
 .hud-item {
@@ -87,6 +88,24 @@ main {
   text-shadow: 0 0 12px rgba(74, 222, 128, 0.8);
 }
 
+#muteButton {
+  flex: 0 0 auto;
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  border-radius: 999px;
+  padding: 4px 8px;
+  background: rgba(15, 23, 42, 0.9);
+  color: #fff;
+  font: inherit;
+  font-size: 0.7rem;
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+#muteButton:hover,
+#muteButton:focus-visible {
+  background: #334155;
+}
+
 canvas {
   display: block;
   width: 100%;
@@ -95,6 +114,7 @@ canvas {
   background: #000;
   box-shadow: 0 0 18px rgba(255, 255, 255, 0.4), 0 0 30px rgba(125, 92, 255, 0.35);
   animation: borderRainbow 8s linear infinite;
+  touch-action: none;
 }
 
 .overlay {
@@ -133,6 +153,29 @@ canvas {
   font-size: 0.95rem;
   line-height: 1.5;
   color: #e2e8f0;
+}
+
+.difficulty-control {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin: 0 0 16px;
+  color: #e2e8f0;
+  font-weight: bold;
+}
+
+.difficulty-control[hidden] {
+  display: none;
+}
+
+#difficultySelect {
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  border-radius: 8px;
+  padding: 7px 10px;
+  background: #0f172a;
+  color: #fff;
+  font: inherit;
 }
 
 #overlayButton {
@@ -175,4 +218,21 @@ p {
   50% { box-shadow: 0 0 18px rgba(120, 170, 255, 0.55), 0 0 30px rgba(145, 100, 255, 0.3); }
   75% { box-shadow: 0 0 18px rgba(255, 120, 220, 0.55), 0 0 30px rgba(255, 100, 160, 0.3); }
   100% { box-shadow: 0 0 18px rgba(255, 100, 100, 0.55), 0 0 30px rgba(255, 180, 80, 0.3); }
+}
+
+@media (max-width: 520px) {
+  .hud {
+    gap: 7px;
+    padding: 7px 8px;
+    font-size: 0.65rem;
+  }
+
+  .hud-item {
+    gap: 4px;
+  }
+
+  #muteButton {
+    font-size: 0.6rem;
+    padding: 4px 6px;
+  }
 }

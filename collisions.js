@@ -50,6 +50,7 @@ function bounceOffPaddle(currentBall) {
   if (boxesTouch(currentBall, paddle) && ballData.vy > 0) {
     ballData.y = paddleData.y - ballData.height;  // sit on top of the paddle
     ballData.vy = -ballData.vy;
+    createParticleBurst(ballData.x + ballData.width / 2, paddleData.y, "#7dd3fc");
     playPaddleSound();
   }
 }
@@ -89,19 +90,22 @@ function bounceOffBricks(currentBall) {
 
     score += 10;
     updateBestScore();
-    if (Math.random() < 0.22) {
-      spawnPowerUp(
-        brickData.x + brickData.width / 2,
-        brickData.y + brickData.height / 2
-      );
-    }
     createParticleBurst(
       brickData.x + brickData.width / 2,
       brickData.y + brickData.height / 2,
-      rainbowColor((performance.now() * 0.0008) + index * 0.06)
+      brickData.type === "armored" ? "#fb923c" : rainbowColor((performance.now() * 0.0008) + index * 0.06)
     );
     playBrickSound();
-    bricks.splice(index, 1);
+    brickData.hitsRemaining -= 1;
+    if (brickData.hitsRemaining <= 0) {
+      if (Math.random() < brickData.dropChance) {
+        spawnPowerUp(
+          brickData.x + brickData.width / 2,
+          brickData.y + brickData.height / 2
+        );
+      }
+      bricks.splice(index, 1);
+    }
     break;  // bounce off one brick per update, then stop looking
   }
 }
