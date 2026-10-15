@@ -88,7 +88,7 @@ function bounceOffBricks(currentBall) {
       }
     }
 
-    score += 10;
+    GameState.score += 10;
     updateBestScore();
     createParticleBurst(
       brickData.x + brickData.width / 2,

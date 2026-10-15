@@ -12,6 +12,11 @@ const ctx = canvas.getContext("2d");
 const WIDTH = canvas.width;   // 600
 const HEIGHT = canvas.height; // 450
 
+const GameState = {
+  score: 0,
+  lives: 3
+};
+
 let audioContext = null;
 
 function ensureAudioContext() {
@@ -301,7 +306,7 @@ function updatePowerUps() {
 
 function activatePowerUp(type) {
   if (type === "life") {
-    lives += 1;
+    GameState.lives += 1;
     updateLivesDisplay();
     return;
   }
@@ -351,7 +356,6 @@ let bricks = [];
 let paused = false;
 let won = false;
 let state = "start";
-let lives = 3;
 let soundMuted = localStorage.getItem("brick-breaker-muted") === "true";
 
 const overlay = document.getElementById("gameOverlay");
@@ -377,18 +381,17 @@ muteButton.addEventListener("click", function () {
   updateMuteButton();
 });
 
-let score = 0;
 let bestScore = Number(localStorage.getItem("brick-breaker-best-score") || 0);
 
 function updateLivesDisplay() {
   if (livesValue) {
-    livesValue.textContent = String(lives);
+    livesValue.textContent = String(GameState.lives);
   }
 }
 
 function updateScoreDisplay() {
   if (scoreValue) {
-    scoreValue.textContent = String(score);
+    scoreValue.textContent = String(GameState.score);
   }
 
   if (bestScoreValue) {
@@ -403,8 +406,8 @@ function updateLevelDisplay() {
 }
 
 function updateBestScore() {
-  if (score > bestScore) {
-    bestScore = score;
+  if (GameState.score > bestScore) {
+    bestScore = GameState.score;
     localStorage.setItem("brick-breaker-best-score", String(bestScore));
   }
   updateScoreDisplay();
@@ -424,8 +427,8 @@ function hideOverlay() {
 
 function startNewGame() {
   selectedDifficulty = difficultySelect.value;
-  lives = DIFFICULTIES[selectedDifficulty].startingLives;
-  score = 0;
+  GameState.lives = DIFFICULTIES[selectedDifficulty].startingLives;
+  GameState.score = 0;
   level = 1;
   paddleBoostTimer = 0;
   slowBallTimer = 0;
@@ -604,7 +607,7 @@ function update() {
   if (fallenBalls.length > 0) {
     balls = balls.filter((activeBall) => activeBall.component.y <= HEIGHT);
     if (balls.length === 0) {
-      lives = lives - 1;
+      GameState.lives -= 1;
       shakeTimer = 24;
       createParticleBurst(
         paddle.component.x + paddle.component.width / 2,
@@ -613,7 +616,7 @@ function update() {
       );
       updateLivesDisplay();
 
-      if (lives <= 0) {
+      if (GameState.lives <= 0) {
         state = "gameOver";
         playLoseSound();
         showOverlay("GAME OVER", "The moon won this round. Press R or use the button to try again.", "Restart Game");
@@ -863,8 +866,8 @@ function start() {
   state = "start";
   paused = false;
   won = false;
-  lives = DIFFICULTIES[selectedDifficulty].startingLives;
-  score = 0;
+  GameState.lives = DIFFICULTIES[selectedDifficulty].startingLives;
+  GameState.score = 0;
   level = 1;
   powerUps.length = 0;
   paddle.component.width = BASE_PADDLE_WIDTH;

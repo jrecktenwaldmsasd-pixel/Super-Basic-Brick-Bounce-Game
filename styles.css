@@ -69,13 +69,13 @@ main {
 }
 
 #livesValue {
-  color: #fbbf24;
-  text-shadow: 0 0 12px rgba(251, 191, 36, 0.8);
+  color: #fff;
+  text-shadow: 0 0 12px rgba(255, 255, 255, 0.8);
 }
 
 #scoreValue {
-  color: #7dd3fc;
-  text-shadow: 0 0 12px rgba(125, 211, 252, 0.8);
+  color: #fff;
+  text-shadow: 0 0 12px rgba(255, 255, 255, 0.8);
 }
 
 #bestScoreValue {
