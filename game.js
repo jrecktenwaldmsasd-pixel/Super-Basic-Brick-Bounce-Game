@@ -117,7 +117,13 @@ function getCurrentBallSpeed() {
   );
 }
 
-function makeBall(x = WIDTH / 2, y = HEIGHT / 2, vx = BALL_SPEED, vy = BALL_SPEED) {
+function makeBall(
+  x = WIDTH / 2,
+  y = HEIGHT / 2,
+  vx = BALL_SPEED,
+  vy = BALL_SPEED,
+  speedMultiplier = 1
+) {
   return {
     component: {
       ...component,
@@ -126,7 +132,8 @@ function makeBall(x = WIDTH / 2, y = HEIGHT / 2, vx = BALL_SPEED, vy = BALL_SPEE
       width: 12,
       height: 12,
       vx,
-      vy
+      vy,
+      speedMultiplier
     }
   };
 }
@@ -141,7 +148,7 @@ function resetBall() {
   const nextBall = makeBall(
     WIDTH / 2 - 6,
     HEIGHT / 2 - 6,
-    0,
+    1,
     BALL_SPEED
   );
   ball.component = nextBall.component;
@@ -150,18 +157,19 @@ function resetBall() {
 
 function applyBallSpeedSettings() {
   const baseSpeed = getCurrentBallSpeed();
-  const targetSpeed = slowBallTimer > 0 ? baseSpeed * 0.7 : baseSpeed;
 
   for (const activeBall of balls) {
     const ballData = activeBall.component;
-    const currentSpeed = Math.hypot(ballData.vx, ballData.vy) || targetSpeed;
-    const angle = Math.atan2(ballData.vy, ballData.vx);
+    const currentSpeed = Math.hypot(ballData.vx, ballData.vy);
+    const angle = currentSpeed === 0
+      ? Math.PI / 4
+      : Math.atan2(ballData.vy, ballData.vx);
+    const targetSpeed = Math.min(
+      MAX_BALL_SPEED,
+      baseSpeed * (slowBallTimer > 0 ? 0.7 : 1) * ballData.speedMultiplier
+    );
     ballData.vx = Math.cos(angle) * targetSpeed;
     ballData.vy = Math.sin(angle) * targetSpeed;
-    if (currentSpeed === 0) {
-      ballData.vx = BALL_SPEED;
-      ballData.vy = BALL_SPEED;
-    }
   }
 }
 
@@ -180,13 +188,15 @@ function spawnMultiball() {
       ballData.x,
       ballData.y,
       Math.cos(leftAngle) * speed,
-      Math.sin(leftAngle) * speed
+      Math.sin(leftAngle) * speed,
+      ballData.speedMultiplier
     ));
     newBalls.push(makeBall(
       ballData.x,
       ballData.y,
       Math.cos(rightAngle) * speed,
-      Math.sin(rightAngle) * speed
+      Math.sin(rightAngle) * speed,
+      ballData.speedMultiplier
     ));
   }
 

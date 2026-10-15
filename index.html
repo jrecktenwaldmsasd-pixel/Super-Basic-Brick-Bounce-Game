@@ -57,14 +57,15 @@
     function system() {
       const movingLeft = Boolean(keys["arrowleft"] || keys["a"]);
       const movingRight = Boolean(keys["arrowright"] || keys["d"]);
+      const previousPaddleX = paddle.component.x;
       if (pointerPaddleX !== null) {
         paddle.component.x = pointerPaddleX - paddle.component.width / 2;
-        paddle.component.vx = 0;
       } else {
         paddle.component.vx = (movingRight - movingLeft) * paddle.component.speed;
         paddle.component.x += paddle.component.vx;
       }
       paddle.component.x = Math.max(0, Math.min(WIDTH - paddle.component.width, paddle.component.x));
+      paddle.component.vx = paddle.component.x - previousPaddleX;
 
       for (const activeBall of balls) {
         const data = activeBall.component;

@@ -49,7 +49,31 @@ function bounceOffPaddle(currentBall) {
   const paddleData = paddle.component;
   if (boxesTouch(currentBall, paddle) && ballData.vy > 0) {
     ballData.y = paddleData.y - ballData.height;  // sit on top of the paddle
-    ballData.vy = -ballData.vy;
+    const hitOffset = Math.max(
+      -1,
+      Math.min(
+        1,
+        (ballData.x + ballData.width / 2 - (paddleData.x + paddleData.width / 2)) /
+          (paddleData.width / 2)
+      )
+    );
+    const paddleSweep = Math.max(
+      -1,
+      Math.min(1, paddleData.vx / paddleData.speed)
+    );
+    const horizontalDirection = Math.max(
+      -0.9,
+      Math.min(0.9, hitOffset * 0.75 + paddleSweep * 0.35)
+    );
+    ballData.speedMultiplier = 0.8 + (Math.abs(horizontalDirection) / 0.9) * 0.7;
+    const speed = Math.min(
+      MAX_BALL_SPEED,
+      getCurrentBallSpeed() *
+        (slowBallTimer > 0 ? 0.7 : 1) *
+        ballData.speedMultiplier
+    );
+    ballData.vx = horizontalDirection * speed;
+    ballData.vy = -Math.sqrt(1 - horizontalDirection ** 2) * speed;
     createParticleBurst(ballData.x + ballData.width / 2, paddleData.y, "#7dd3fc");
     playPaddleSound();
   }
