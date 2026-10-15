@@ -141,7 +141,7 @@ function resetBall() {
   const nextBall = makeBall(
     WIDTH / 2 - 6,
     HEIGHT / 2 - 6,
-    BALL_SPEED,
+    0,
     BALL_SPEED
   );
   ball.component = nextBall.component;
@@ -208,6 +208,10 @@ const paddle = {
     controlled: true
   }
 };
+
+function centerPaddle() {
+  paddle.component.x = (WIDTH - paddle.component.width) / 2;
+}
 
 const stars = [];
 for (let i = 0; i < 220; i++) {
@@ -434,6 +438,7 @@ function startNewGame() {
   slowBallTimer = 0;
   shakeTimer = 0;
   paddle.component.width = BASE_PADDLE_WIDTH;
+  centerPaddle();
   powerUps.length = 0;
   updateLivesDisplay();
   updateScoreDisplay();
@@ -614,6 +619,7 @@ function update() {
         HEIGHT - 10,
         "#f87171"
       );
+      centerPaddle();
       updateLivesDisplay();
 
       if (GameState.lives <= 0) {
