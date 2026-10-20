@@ -11,9 +11,32 @@ const trackProgress = document.getElementById("trackProgress");
 const elapsedTime = document.getElementById("elapsedTime");
 const trackDuration = document.getElementById("trackDuration");
 const musicVolume = document.getElementById("musicVolume");
+const sharedMusicUploadPanel = document.getElementById("sharedMusicUploadPanel");
+const sharedMusicLogin = document.getElementById("sharedMusicLogin");
+const sharedMusicUpload = document.getElementById("sharedMusicUpload");
+const sharedMusicEmail = document.getElementById("sharedMusicEmail");
+const sharedMusicPassword = document.getElementById("sharedMusicPassword");
+const sharedMusicFiles = document.getElementById("sharedMusicFiles");
+const sharedMusicSignOut = document.getElementById("sharedMusicSignOut");
+const sharedMusicUploadStatus = document.getElementById("sharedMusicUploadStatus");
 
 const playlist = [];
+const sharedTrackPaths = new Set();
+const sharedMusicConfig = window.SHARED_MUSIC_CONFIG || {};
+const sharedMusicUrl = (sharedMusicConfig.supabaseUrl || "").replace(/\/+$/, "");
+const sharedMusicAnonKey = sharedMusicConfig.anonKey || "";
+const sharedMusicBucket = sharedMusicConfig.bucket || "game-music";
+let sharedMusicAccessToken = "";
 let currentTrackIndex = -1;
+
+function sharedMusicEndpoint(path) {
+  return `${sharedMusicUrl}/storage/v1/${path}`;
+}
+
+async function readErrorMessage(response) {
+  const payload = await response.json().catch(() => ({}));
+  return payload.message || payload.msg || response.statusText;
+}
 
 function formatTime(seconds) {
   if (!Number.isFinite(seconds)) {
@@ -33,8 +56,10 @@ function renderPlaylist() {
     const button = document.createElement("button");
     const name = document.createElement("span");
     const duration = document.createElement("time");
+    const saveLink = document.createElement("a");
 
     button.type = "button";
+    button.className = "select-track";
     button.setAttribute("aria-current", String(index === currentTrackIndex));
     button.addEventListener("click", () => selectTrack(index, true));
     name.className = "track-name";
@@ -42,7 +67,33 @@ function renderPlaylist() {
     duration.textContent = track.duration ? formatTime(track.duration) : "MP3";
 
     button.append(name, duration);
-    item.append(button);
+    saveLink.className = "save-track";
+    saveLink.href = track.url;
+    saveLink.download = track.file.name;
+    saveLink.textContent = "Save";
+    saveLink.setAttribute("aria-label", `Save ${track.file.name}`);
+    if (track.isShared) {
+      saveLink.addEventListener("click", async (event) => {
+        event.preventDefault();
+        try {
+          const response = await fetch(track.url);
+          if (!response.ok) {
+            throw new Error("The shared MP3 could not be downloaded.");
+          }
+
+          const downloadUrl = URL.createObjectURL(await response.blob());
+          const download = document.createElement("a");
+          download.href = downloadUrl;
+          download.download = track.file.name;
+          download.click();
+          URL.revokeObjectURL(downloadUrl);
+        } catch (error) {
+          musicStatus.textContent = error.message;
+        }
+      });
+    }
+
+    item.append(button, saveLink);
     trackList.append(item);
   });
 }
@@ -102,6 +153,140 @@ function moveTrack(offset) {
   const nextIndex = (currentTrackIndex + offset + playlist.length) % playlist.length;
   selectTrack(nextIndex, true);
 }
+
+async function loadSharedTracks() {
+  if (!sharedMusicUrl || !sharedMusicAnonKey) {
+    sharedMusicUploadPanel.hidden = true;
+    if (playlist.length === 0) {
+      musicStatus.textContent = "Choose local MP3s or configure shared music for everyone to hear.";
+    }
+    return;
+  }
+
+  sharedMusicUploadPanel.hidden = false;
+  try {
+    const response = await fetch(sharedMusicEndpoint(`object/list/${encodeURIComponent(sharedMusicBucket)}`), {
+      method: "POST",
+      headers: {
+        apikey: sharedMusicAnonKey,
+        Authorization: `Bearer ${sharedMusicAnonKey}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ prefix: "", limit: 1000, offset: 0, sortBy: { column: "name", order: "asc" } })
+    });
+    if (!response.ok) {
+      throw new Error(await readErrorMessage(response));
+    }
+
+    const objects = await response.json();
+    let addedCount = 0;
+    for (const object of objects) {
+      if (!object.name || !object.name.toLowerCase().endsWith(".mp3") || sharedTrackPaths.has(object.name)) {
+        continue;
+      }
+
+      const encodedPath = object.name.split("/").map(encodeURIComponent).join("/");
+      playlist.push({
+        file: { name: object.name.split("/").pop() },
+        url: `${sharedMusicUrl}/storage/v1/object/public/${encodeURIComponent(sharedMusicBucket)}/${encodedPath}`,
+        duration: 0,
+        isShared: true,
+        sharedPath: object.name
+      });
+      sharedTrackPaths.add(object.name);
+      addedCount += 1;
+    }
+
+    if (currentTrackIndex === -1 && playlist.length > 0) {
+      selectTrack(0);
+    } else {
+      previousButton.disabled = playlist.length < 2;
+      nextButton.disabled = playlist.length < 2;
+      renderPlaylist();
+    }
+
+    musicStatus.textContent = addedCount > 0
+      ? `${addedCount} shared MP3${addedCount === 1 ? "" : "s"} loaded. Select a track to listen.`
+      : "No shared MP3s yet. Choose local files or upload shared tracks.";
+  } catch (error) {
+    console.error("Could not load the shared music playlist:", error);
+    musicStatus.textContent = "Could not load shared MP3s. Local files are still available.";
+  }
+}
+
+sharedMusicLogin.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const password = sharedMusicPassword.value;
+  sharedMusicPassword.value = "";
+  sharedMusicUploadStatus.textContent = "Signing in...";
+
+  try {
+    const response = await fetch(`${sharedMusicUrl}/auth/v1/token?grant_type=password`, {
+      method: "POST",
+      headers: { apikey: sharedMusicAnonKey, "Content-Type": "application/json" },
+      body: JSON.stringify({ email: sharedMusicEmail.value, password })
+    });
+    if (!response.ok) {
+      throw new Error(await readErrorMessage(response));
+    }
+
+    const session = await response.json();
+    sharedMusicAccessToken = session.access_token;
+    sharedMusicLogin.hidden = true;
+    sharedMusicUpload.hidden = false;
+    sharedMusicUploadStatus.textContent = "Signed in. Choose MP3 files to add them to the shared playlist.";
+  } catch (error) {
+    sharedMusicUploadStatus.textContent = `Sign-in failed: ${error.message}`;
+  }
+});
+
+sharedMusicUpload.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const files = [...sharedMusicFiles.files].filter((file) =>
+    file.type === "audio/mpeg" || file.name.toLowerCase().endsWith(".mp3")
+  );
+  if (files.length === 0) {
+    sharedMusicUploadStatus.textContent = "Choose one or more MP3 files to upload.";
+    return;
+  }
+
+  const uploadButton = sharedMusicUpload.querySelector('button[type="submit"]');
+  uploadButton.disabled = true;
+  try {
+    for (const [index, file] of files.entries()) {
+      sharedMusicUploadStatus.textContent = `Uploading ${index + 1} of ${files.length}: ${file.name}`;
+      const response = await fetch(sharedMusicEndpoint(`object/${encodeURIComponent(sharedMusicBucket)}/${encodeURIComponent(file.name)}`), {
+        method: "POST",
+        headers: {
+          apikey: sharedMusicAnonKey,
+          Authorization: `Bearer ${sharedMusicAccessToken}`,
+          "Content-Type": file.type || "audio/mpeg",
+          "x-upsert": "false"
+        },
+        body: file
+      });
+      if (!response.ok) {
+        throw new Error(`${file.name}: ${await readErrorMessage(response)}`);
+      }
+    }
+
+    sharedMusicFiles.value = "";
+    sharedMusicUploadStatus.textContent = `Uploaded ${files.length} MP3${files.length === 1 ? "" : "s"}. Refreshing playlist...`;
+    await loadSharedTracks();
+    sharedMusicUploadStatus.textContent = `Uploaded ${files.length} MP3${files.length === 1 ? "" : "s"}. They are now in the shared playlist.`;
+  } catch (error) {
+    sharedMusicUploadStatus.textContent = `Upload failed: ${error.message}`;
+  } finally {
+    uploadButton.disabled = false;
+  }
+});
+
+sharedMusicSignOut.addEventListener("click", () => {
+  sharedMusicAccessToken = "";
+  sharedMusicUpload.hidden = true;
+  sharedMusicLogin.hidden = false;
+  sharedMusicUploadStatus.textContent = "Signed out.";
+});
 
 musicFiles.addEventListener("change", () => {
   const selectedFiles = [...musicFiles.files].filter((file) =>
@@ -186,6 +371,7 @@ musicVolume.addEventListener("input", () => {
 });
 
 musicAudio.volume = Number(musicVolume.value);
+loadSharedTracks();
 window.addEventListener("beforeunload", () => {
   for (const track of playlist) {
     URL.revokeObjectURL(track.url);

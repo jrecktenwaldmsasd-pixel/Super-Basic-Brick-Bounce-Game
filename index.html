@@ -49,13 +49,35 @@
     <section class="music-player" aria-labelledby="musicTitle">
       <div class="music-heading">
         <div>
-          <p class="music-eyebrow">LOCAL AUDIO</p>
+          <p class="music-eyebrow">LOCAL + SHARED AUDIO</p>
           <h2 id="musicTitle">Music Player</h2>
         </div>
         <input id="musicFiles" type="file" accept=".mp3,audio/mpeg" multiple>
         <label class="add-tracks-button" for="musicFiles">Add MP3s</label>
       </div>
-      <p id="musicStatus" class="music-status" aria-live="polite">Choose MP3 files to build your playlist.</p>
+      <p id="musicStatus" class="music-status" aria-live="polite">Loading shared playlist...</p>
+      <details id="sharedMusicUploadPanel" class="shared-music-upload" hidden>
+        <summary>Upload shared MP3s</summary>
+        <form id="sharedMusicLogin" class="shared-music-form">
+          <label>Email
+            <input id="sharedMusicEmail" type="email" autocomplete="username" required>
+          </label>
+          <label>Password
+            <input id="sharedMusicPassword" type="password" autocomplete="current-password" required>
+          </label>
+          <button type="submit">Sign in</button>
+        </form>
+        <form id="sharedMusicUpload" class="shared-music-form" hidden>
+          <label>MP3 files
+            <input id="sharedMusicFiles" type="file" accept=".mp3,audio/mpeg" multiple>
+          </label>
+          <div class="shared-music-actions">
+            <button type="submit">Upload tracks</button>
+            <button id="sharedMusicSignOut" type="button">Sign out</button>
+          </div>
+        </form>
+        <p id="sharedMusicUploadStatus" class="music-status" aria-live="polite"></p>
+      </details>
       <div class="music-controls">
         <div class="track-info">
           <span class="track-indicator" aria-hidden="true"></span>
@@ -85,6 +107,7 @@
   <script src="game.js"></script>
   <script src="bricks.js"></script>
   <script src="collisions.js"></script>
+  <script src="shared-music-config.js"></script>
   <script src="music-player.js"></script>
   <script>
     function system() {

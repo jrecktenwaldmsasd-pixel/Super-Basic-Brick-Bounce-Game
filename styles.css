@@ -280,6 +280,70 @@ p {
   animation: none;
 }
 
+.shared-music-upload {
+  margin: 12px 0;
+  padding: 10px 0;
+  border-top: 1px solid #333;
+  border-bottom: 1px solid #333;
+  color: #ddd;
+  font-size: 0.8rem;
+}
+
+.shared-music-upload summary {
+  cursor: pointer;
+}
+
+.shared-music-form {
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.shared-music-form[hidden] {
+  display: none;
+}
+
+.shared-music-form label {
+  display: grid;
+  gap: 5px;
+}
+
+.shared-music-form input {
+  min-width: 0;
+  padding: 7px;
+  border: 1px solid #555;
+  border-radius: 3px;
+  background: #111;
+  color: #fff;
+  font: inherit;
+}
+
+.shared-music-form button {
+  justify-self: start;
+  padding: 7px 10px;
+  border: 1px solid #777;
+  border-radius: 3px;
+  background: #171717;
+  color: #fff;
+  font: inherit;
+  cursor: pointer;
+}
+
+.shared-music-form button:hover:not(:disabled) {
+  background: #333;
+}
+
+.shared-music-form button:disabled {
+  opacity: 0.5;
+  cursor: wait;
+}
+
+.shared-music-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
 .music-controls {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
@@ -376,13 +440,20 @@ p {
   list-style: none;
 }
 
+.track-list li {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
 .track-list:empty {
   display: none;
 }
 
-.track-list button {
+.track-list .select-track {
   display: flex;
-  width: 100%;
+  flex: 1;
+  min-width: 0;
   justify-content: space-between;
   gap: 12px;
   padding: 8px;
@@ -395,8 +466,22 @@ p {
   cursor: pointer;
 }
 
-.track-list button:hover,
-.track-list button[aria-current="true"] {
+.track-list .select-track:hover,
+.track-list .select-track[aria-current="true"] {
+  background: #242424;
+  color: #fff;
+}
+
+.track-list .save-track {
+  flex: 0 0 auto;
+  padding: 6px 8px;
+  color: #8df0a0;
+  font-size: 0.75rem;
+  text-decoration: none;
+}
+
+.track-list .save-track:hover,
+.track-list .save-track:focus-visible {
   background: #242424;
   color: #fff;
 }
