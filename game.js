@@ -472,6 +472,24 @@ function startNextLevel() {
   hideOverlay();
 }
 
+function launchBall() {
+  if (state === "start" || state === "gameOver") {
+    startNewGame();
+    return;
+  }
+
+  if (state === "levelComplete") {
+    startNextLevel();
+    return;
+  }
+
+  if (state === "paused") {
+    paused = false;
+    state = "playing";
+    hideOverlay();
+  }
+}
+
 // ------------------------------------------------------------
 // KEYBOARD
 // keys["arrowleft"] is true while the left arrow is held down.
@@ -521,6 +539,10 @@ canvas.addEventListener("pointercancel", stopPointerControl);
 document.addEventListener("keydown", function (event) {
   const key = event.key.toLowerCase();
   keys[key] = true;
+  if (!event.repeat && event.code === "Space") {
+    launchBall();
+    event.preventDefault();
+  }
   if (!event.repeat && key === "r" && state === "gameOver") {
     startNewGame();
   }
@@ -895,21 +917,7 @@ function start() {
 }
 
 overlayButton.addEventListener("click", function () {
-  if (state === "start" || state === "gameOver") {
-    startNewGame();
-    return;
-  }
-
-  if (state === "levelComplete") {
-    startNextLevel();
-    return;
-  }
-
-  if (state === "paused") {
-    paused = false;
-    state = "playing";
-    hideOverlay();
-  }
+  launchBall();
 });
 
 // Wait until all three script files have loaded, then start.
