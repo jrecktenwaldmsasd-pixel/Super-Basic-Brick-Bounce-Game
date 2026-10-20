@@ -140,19 +140,21 @@ function makeBall(
 
 const ball = makeBall();
 let balls = [ball];
+let ballLaunched = false;
 let paddleBoostTimer = 0;
 let slowBallTimer = 0;
 const powerUps = [];
 
 function resetBall() {
   const nextBall = makeBall(
-    WIDTH / 2 - 6,
-    HEIGHT / 2 - 6,
-    1,
-    BALL_SPEED
+    paddle.component.x + (paddle.component.width - 12) / 2,
+    paddle.component.y - 12,
+    0,
+    0
   );
   ball.component = nextBall.component;
   balls = [ball];
+  ballLaunched = false;
 }
 
 function applyBallSpeedSettings() {
@@ -472,22 +474,25 @@ function startNextLevel() {
   hideOverlay();
 }
 
-function launchBall() {
+function launchBall(shouldLaunch = true) {
   if (state === "start" || state === "gameOver") {
     startNewGame();
-    return;
-  }
-
-  if (state === "levelComplete") {
+  } else if (state === "levelComplete") {
     startNextLevel();
-    return;
-  }
-
-  if (state === "paused") {
+  } else if (state === "paused") {
     paused = false;
     state = "playing";
     hideOverlay();
   }
+
+  if (!shouldLaunch || state !== "playing" || ballLaunched) {
+    return;
+  }
+
+  const horizontalSpeed = (Math.random() < 0.5 ? -0.35 : 0.35) * getCurrentBallSpeed();
+  ball.component.vx = horizontalSpeed;
+  ball.component.vy = -Math.sqrt(getCurrentBallSpeed() ** 2 - horizontalSpeed ** 2);
+  ballLaunched = true;
 }
 
 // ------------------------------------------------------------
@@ -600,7 +605,9 @@ function update() {
     slowBallTimer -= 1;
   }
 
-  applyBallSpeedSettings();
+  if (ballLaunched) {
+    applyBallSpeedSettings();
+  }
   moveBricks();
   system();
 
@@ -912,12 +919,12 @@ function start() {
   updateLivesDisplay();
   updateScoreDisplay();
   updateLevelDisplay();
-  showOverlay("READY?", "Move with the arrow keys or A and D. Press P to pause or resume. Press R to restart after game over.", "Start Game");
+  showOverlay("READY?", "Move with the arrow keys or A and D. Press Space to launch. Press P to pause or resume.", "Start Game");
   requestAnimationFrame(frame);
 }
 
 overlayButton.addEventListener("click", function () {
-  launchBall();
+  launchBall(false);
 });
 
 // Wait until all three script files have loaded, then start.

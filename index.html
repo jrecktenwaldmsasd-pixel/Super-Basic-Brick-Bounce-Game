@@ -69,8 +69,13 @@
 
       for (const activeBall of balls) {
         const data = activeBall.component;
-        data.x += data.vx;
-        data.y += data.vy;
+        if (ballLaunched) {
+          data.x += data.vx;
+          data.y += data.vy;
+        } else {
+          data.x = paddle.component.x + (paddle.component.width - data.width) / 2;
+          data.y = paddle.component.y - data.height;
+        }
       }
     }
   </script>
