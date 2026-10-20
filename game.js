@@ -651,6 +651,7 @@ function update() {
   if (fallenBalls.length > 0) {
     balls = balls.filter((activeBall) => activeBall.component.y <= HEIGHT);
     if (balls.length === 0) {
+      powerUps.length = 0;
       GameState.lives -= 1;
       shakeTimer = 24;
       createParticleBurst(
