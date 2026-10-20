@@ -55,6 +55,16 @@ function updatePlaybackButton() {
   musicPlayer.classList.toggle("is-playing", isPlaying);
 }
 
+function showPlaybackError(error) {
+  if (error?.name === "NotAllowedError") {
+    musicStatus.textContent = "Playback was blocked. Press Play to start the track.";
+  } else if (error?.name === "NotSupportedError") {
+    musicStatus.textContent = "This file is not a supported MP3 audio stream.";
+  } else {
+    musicStatus.textContent = `Could not start playback${error?.message ? `: ${error.message}` : "."}`;
+  }
+}
+
 function selectTrack(index, autoplay = false) {
   const track = playlist[index];
   if (!track) {
@@ -71,12 +81,12 @@ function selectTrack(index, autoplay = false) {
   playbackButton.disabled = false;
   previousButton.disabled = playlist.length < 2;
   nextButton.disabled = playlist.length < 2;
-  musicStatus.textContent = `${playlist.length} track${playlist.length === 1 ? "" : "s"} in playlist.`;
+  musicStatus.textContent = `${playlist.length} track${playlist.length === 1 ? "" : "s"} loaded. Press Play to start.`;
   renderPlaylist();
 
   if (autoplay) {
-    musicAudio.play().catch(() => {
-      musicStatus.textContent = "This MP3 could not be played by your browser.";
+    musicAudio.play().catch((error) => {
+      showPlaybackError(error);
       updatePlaybackButton();
     });
   } else {
@@ -121,8 +131,8 @@ musicFiles.addEventListener("change", () => {
 
 playbackButton.addEventListener("click", () => {
   if (musicAudio.paused) {
-    musicAudio.play().catch(() => {
-      musicStatus.textContent = "This MP3 could not be played by your browser.";
+    musicAudio.play().catch((error) => {
+      showPlaybackError(error);
     });
   } else {
     musicAudio.pause();
@@ -158,7 +168,10 @@ musicAudio.addEventListener("ended", () => {
   }
 });
 musicAudio.addEventListener("error", () => {
-  musicStatus.textContent = "This MP3 could not be loaded. Try another file.";
+  const errorCode = musicAudio.error?.code;
+  musicStatus.textContent = errorCode === MediaError.MEDIA_ERR_DECODE
+    ? "The browser could not decode this file. It may be damaged or use an unsupported codec."
+    : "The browser could not load this file. Try another MP3.";
   updatePlaybackButton();
 });
 
