@@ -10,5 +10,5 @@ for insert
 to authenticated
 with check (
   bucket_id = 'game-music'
-  and (select auth.jwt() ->> 'email') = 'your-owner-email@example.com'
+  and (select auth.jwt() ->> 'email') = 'jrecktenwald_msasd@magnoliascience.org'
 );
