@@ -213,6 +213,116 @@ p {
   animation: rainbowShift 6s linear infinite;
 }
 
+.powerup-panel {
+  margin: 24px auto 0;
+  padding: 18px 16px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  background: rgba(15, 23, 42, 0.8);
+  color: #fff;
+  box-shadow: 0 0 22px rgba(168, 85, 247, 0.18);
+}
+
+.powerup-header {
+  margin-bottom: 12px;
+}
+
+.powerup-eyebrow {
+  margin: 0 0 4px;
+  color: #a3a3a3;
+  font-size: 0.65rem;
+  letter-spacing: 0.12em;
+  text-shadow: none;
+  background: none;
+  animation: none;
+}
+
+.powerup-header h2 {
+  margin: 0;
+  font-size: 1.2rem;
+}
+
+.powerup-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.powerup-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
+  background: rgba(15, 23, 42, 0.7);
+  min-height: 112px;
+}
+
+.powerup-card.life {
+  border-color: rgba(251, 191, 36, 0.45);
+}
+
+.powerup-card.paddle {
+  border-color: rgba(52, 211, 153, 0.45);
+}
+
+.powerup-card.slow {
+  border-color: rgba(96, 165, 250, 0.45);
+}
+
+.powerup-card.multi {
+  border-color: rgba(244, 114, 182, 0.45);
+}
+
+.powerup-icon {
+  width: 54px;
+  height: 54px;
+  flex: 0 0 54px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 14px;
+  font-weight: 700;
+  font-size: 1.5rem;
+  color: #020617;
+  box-shadow: 0 0 18px rgba(255, 255, 255, 0.12);
+}
+
+.powerup-card.life .powerup-icon {
+  background: linear-gradient(135deg, #fbbf24, #facc15);
+}
+
+.powerup-card.paddle .powerup-icon {
+  background: linear-gradient(135deg, #34d399, #10b981);
+}
+
+.powerup-card.slow .powerup-icon {
+  background: linear-gradient(135deg, #60a5fa, #3b82f6);
+}
+
+.powerup-card.multi .powerup-icon {
+  background: linear-gradient(135deg, #f472b6, #ec4899);
+}
+
+.powerup-copy {
+  flex: 1;
+}
+
+.powerup-copy h3 {
+  margin: 0 0 6px;
+  font-size: 1rem;
+}
+
+.powerup-copy p {
+  margin: 0;
+  font-size: 0.8rem;
+  line-height: 1.4;
+  color: #e2e8f0;
+  background: none;
+  text-shadow: none;
+  animation: none;
+}
+
 .music-player {
   margin: 24px auto 0;
   padding: 16px;
