@@ -112,13 +112,16 @@ function bounceOffBricks(currentBall) {
       }
     }
 
-    GameState.score += 10;
+    GameState.combo = Math.min(12, (GameState.combo || 0) + 1);
+    const comboMultiplier = 1 + (GameState.combo - 1) * 0.2;
+    GameState.score += Math.round(10 * comboMultiplier);
     updateBestScore();
     createParticleBurst(
       brickData.x + brickData.width / 2,
       brickData.y + brickData.height / 2,
       brickData.type === "armored" ? "#fb923c" : rainbowColor((performance.now() * 0.0008) + index * 0.06)
     );
+    shakeTimer = Math.max(shakeTimer, 6);
     playBrickSound();
     brickData.hitsRemaining -= 1;
     if (brickData.hitsRemaining <= 0) {

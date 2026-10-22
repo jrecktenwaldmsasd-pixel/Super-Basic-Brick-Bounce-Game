@@ -63,9 +63,15 @@ main {
 #livesValue,
 #scoreValue,
 #bestScoreValue,
+#comboValue,
 #levelValue {
   min-width: 1.2em;
   text-align: center;
+}
+
+#comboValue {
+  color: #fbbf24;
+  text-shadow: 0 0 12px rgba(251, 191, 36, 0.8);
 }
 
 #livesValue {

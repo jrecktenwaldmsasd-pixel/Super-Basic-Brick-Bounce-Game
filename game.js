@@ -14,7 +14,8 @@ const HEIGHT = canvas.height; // 450
 
 const GameState = {
   score: 0,
-  lives: 3
+  lives: 3,
+  combo: 0
 };
 
 let audioContext = null;
@@ -324,6 +325,7 @@ function activatePowerUp(type) {
   if (type === "life") {
     GameState.lives += 1;
     updateLivesDisplay();
+    createParticleBurst(paddle.component.x + paddle.component.width / 2, paddle.component.y, "#fbbf24");
     return;
   }
 
@@ -331,16 +333,19 @@ function activatePowerUp(type) {
     paddle.component.width = BASE_PADDLE_WIDTH * 1.5;
     paddleBoostTimer = 600;
     paddle.component.x = Math.min(paddle.component.x, WIDTH - paddle.component.width);
+    createParticleBurst(paddle.component.x + paddle.component.width / 2, paddle.component.y, "#34d399");
     return;
   }
 
   if (type === "slow") {
     slowBallTimer = 600;
+    createParticleBurst(paddle.component.x + paddle.component.width / 2, paddle.component.y, "#60a5fa");
     return;
   }
 
   if (type === "multi") {
     spawnMultiball();
+    createParticleBurst(paddle.component.x + paddle.component.width / 2, paddle.component.y, "#f472b6");
   }
 }
 
@@ -381,6 +386,7 @@ const overlayButton = document.getElementById("overlayButton");
 const livesValue = document.getElementById("livesValue");
 const scoreValue = document.getElementById("scoreValue");
 const bestScoreValue = document.getElementById("bestScoreValue");
+const comboValue = document.getElementById("comboValue");
 const levelValue = document.getElementById("levelValue");
 const difficultySelect = document.getElementById("difficultySelect");
 const difficultyControl = difficultySelect.closest(".difficulty-control");
@@ -412,6 +418,10 @@ function updateScoreDisplay() {
 
   if (bestScoreValue) {
     bestScoreValue.textContent = String(bestScore);
+  }
+
+  if (comboValue) {
+    comboValue.textContent = `x${Math.max(1, GameState.combo)}`;
   }
 }
 
@@ -445,6 +455,7 @@ function startNewGame() {
   selectedDifficulty = difficultySelect.value;
   GameState.lives = DIFFICULTIES[selectedDifficulty].startingLives;
   GameState.score = 0;
+  GameState.combo = 0;
   level = 1;
   paddleBoostTimer = 0;
   slowBallTimer = 0;
@@ -466,7 +477,9 @@ function startNewGame() {
 
 function startNextLevel() {
   level += 1;
+  GameState.combo = 0;
   updateLevelDisplay();
+  updateScoreDisplay();
   bricks = makeBricks(level);
   powerUps.length = 0;
   resetBall();
@@ -589,6 +602,9 @@ function update() {
     return;
   }
 
+  GameState.combo = Math.max(0, GameState.combo);
+  updateScoreDisplay();
+
   if (shakeTimer > 0) {
     shakeTimer -= 1;
   }
@@ -653,6 +669,7 @@ function update() {
     if (balls.length === 0) {
       powerUps.length = 0;
       GameState.lives -= 1;
+      GameState.combo = 0;
       shakeTimer = 24;
       createParticleBurst(
         paddle.component.x + paddle.component.width / 2,
@@ -661,11 +678,16 @@ function update() {
       );
       centerPaddle();
       updateLivesDisplay();
+      updateScoreDisplay();
 
       if (GameState.lives <= 0) {
         state = "gameOver";
         playLoseSound();
-        showOverlay("GAME OVER", "The moon won this round. Press R or use the button to try again.", "Restart Game");
+        showOverlay(
+          "GAME OVER",
+          `Final score: ${GameState.score}. Best score: ${bestScore}. Press R or use the button to try again.`,
+          "Restart Game"
+        );
         return;
       }
 
@@ -914,6 +936,7 @@ function start() {
   won = false;
   GameState.lives = DIFFICULTIES[selectedDifficulty].startingLives;
   GameState.score = 0;
+  GameState.combo = 0;
   level = 1;
   powerUps.length = 0;
   paddle.component.width = BASE_PADDLE_WIDTH;
