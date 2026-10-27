@@ -212,6 +212,50 @@ canvas {
   filter: brightness(1.12);
 }
 
+.level-select-form[hidden] {
+  display: none;
+}
+
+.level-select-form {
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+  color: #e2e8f0;
+  font-weight: bold;
+}
+
+#levelSelectInput {
+  width: 110px;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  border-radius: 8px;
+  padding: 7px 10px;
+  background: #0f172a;
+  color: #fff;
+  font: inherit;
+}
+
+.level-select-actions {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+}
+
+.level-select-actions button {
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  border-radius: 999px;
+  padding: 8px 12px;
+  background: #334155;
+  color: #fff;
+  font: inherit;
+  cursor: pointer;
+}
+
+.level-select-actions button[type="submit"] {
+  border: none;
+  background: linear-gradient(135deg, #8b5cf6, #ec4899, #f59e0b);
+}
+
 p {
   margin: 12px 0 0;
   font-size: 14px;

@@ -53,11 +53,19 @@
               <option value="hard">Hard</option>
             </select>
           </label>
+          <form id="levelSelectForm" class="level-select-form" hidden>
+            <label for="levelSelectInput">Choose a level</label>
+            <input id="levelSelectInput" type="number" min="1" step="1" value="5" required>
+            <div class="level-select-actions">
+              <button type="submit">Go to Level</button>
+              <button id="cancelLevelSelect" type="button">Cancel</button>
+            </div>
+          </form>
           <button id="overlayButton" type="button">Start Game</button>
         </div>
       </div>
     </div>
-    <p id="instructions">Move the paddle with the arrow keys, A and D, or drag/tap on the game. Press P to pause or resume. Press R to restart after game over.</p>
+    <p id="instructions">Move the paddle with the arrow keys, A and D, or drag/tap on the game. Press Space to launch, P to pause or resume, and R to restart after game over.</p>
 
     <section class="powerup-panel" aria-labelledby="powerupsTitle">
       <div class="powerup-header">

@@ -433,6 +433,9 @@ const overlay = document.getElementById("gameOverlay");
 const overlayTitle = document.getElementById("overlayTitle");
 const overlayMessage = document.getElementById("overlayMessage");
 const overlayButton = document.getElementById("overlayButton");
+const levelSelectForm = document.getElementById("levelSelectForm");
+const levelSelectInput = document.getElementById("levelSelectInput");
+const cancelLevelSelect = document.getElementById("cancelLevelSelect");
 const livesValue = document.getElementById("livesValue");
 const scoreValue = document.getElementById("scoreValue");
 const bestScoreValue = document.getElementById("bestScoreValue");
@@ -495,10 +498,14 @@ function showOverlay(title, message, buttonText) {
   overlayMessage.textContent = message;
   overlayButton.textContent = buttonText;
   difficultyControl.hidden = title !== "READY?" && title !== "GAME OVER";
+  levelSelectForm.hidden = true;
+  overlayButton.hidden = false;
   overlay.classList.remove("hidden");
 }
 
 function hideOverlay() {
+  levelSelectForm.hidden = true;
+  overlayButton.hidden = false;
   overlay.classList.add("hidden");
 }
 
@@ -538,6 +545,39 @@ function startNextLevel() {
   hideOverlay();
 }
 
+function openLevelSelect() {
+  if (state === "playing") {
+    paused = true;
+  }
+  overlayTitle.textContent = "LEVEL SELECT";
+  overlayMessage.textContent = "Choose any level to jump straight to it.";
+  difficultyControl.hidden = true;
+  overlayButton.hidden = true;
+  levelSelectForm.hidden = false;
+  levelSelectInput.value = String(level);
+  overlay.classList.remove("hidden");
+  levelSelectInput.focus();
+  levelSelectInput.select();
+}
+
+function goToLevel(targetLevel) {
+  if (state === "start" || state === "gameOver" || state === "bossComplete") {
+    startNewGame();
+  }
+
+  level = targetLevel;
+  GameState.combo = 0;
+  updateLevelDisplay();
+  updateScoreDisplay();
+  bricks = makeBricks(level);
+  powerUps.length = 0;
+  resetBall();
+  paused = false;
+  won = false;
+  state = "playing";
+  hideOverlay();
+}
+
 function launchBall(shouldLaunch = true) {
   if (state === "start" || state === "gameOver") {
     startNewGame();
@@ -572,6 +612,7 @@ function launchBall(shouldLaunch = true) {
 const keys = {};
 let pointerControlId = null;
 let pointerPaddleX = null;
+let cheatSequence = "";
 
 function getCanvasX(event) {
   const bounds = canvas.getBoundingClientRect();
@@ -614,9 +655,27 @@ canvas.addEventListener("pointercancel", stopPointerControl);
 document.addEventListener("keydown", function (event) {
   const key = event.key.toLowerCase();
   keys[key] = true;
+  const target = event.target;
+  const isTextEntry = target instanceof HTMLElement
+    && (target.isContentEditable || ["INPUT", "SELECT", "TEXTAREA"].includes(target.tagName));
+  if (event.code === "Space" && !isTextEntry) {
+    event.preventDefault();
+  }
+  if (!levelSelectForm.hidden) {
+    if (key === "escape") {
+      cancelLevelSelect.click();
+    }
+    return;
+  }
+  if (!event.repeat && !isTextEntry) {
+    cheatSequence = /^[1-4]$/.test(key) ? `${cheatSequence}${key}`.slice(-4) : "";
+    if (cheatSequence === "1234") {
+      cheatSequence = "";
+      openLevelSelect();
+    }
+  }
   if (!event.repeat && event.code === "Space") {
     launchBall();
-    event.preventDefault();
   }
   if (!event.repeat && key === "r" && state === "gameOver") {
     startNewGame();
@@ -1022,6 +1081,59 @@ function start() {
 
 overlayButton.addEventListener("click", function () {
   launchBall(false);
+});
+
+levelSelectForm.addEventListener("submit", function (event) {
+  event.preventDefault();
+  const targetLevel = levelSelectInput.valueAsNumber;
+  if (!Number.isSafeInteger(targetLevel) || targetLevel < 1) {
+    levelSelectInput.setCustomValidity("Enter a whole-number level greater than zero.");
+    levelSelectInput.reportValidity();
+    return;
+  }
+  levelSelectInput.setCustomValidity("");
+  goToLevel(targetLevel);
+});
+
+levelSelectInput.addEventListener("input", function () {
+  levelSelectInput.setCustomValidity("");
+});
+
+cancelLevelSelect.addEventListener("click", function () {
+  if (state === "playing") {
+    paused = false;
+    hideOverlay();
+    return;
+  }
+  if (state === "start") {
+    showOverlay(
+      "READY?",
+      "Move with the arrow keys or A and D. Press Space to launch. Press P to pause or resume. Every 5th level is a boss wave.",
+      "Start Game"
+    );
+  } else if (state === "paused") {
+    showOverlay("PAUSED", "Press P to resume, or use the button below.", "Resume Game");
+  } else if (state === "gameOver") {
+    showOverlay(
+      "GAME OVER",
+      `Final score: ${GameState.score}. Best score: ${bestScore}. Press R or use the button to try again.`,
+      "Restart Game"
+    );
+  } else if (state === "bossComplete") {
+    showOverlay(
+      "BOSS DEFEATED",
+      `You cleared the boss wave on level ${level}. Press the button to start a fresh run.`,
+      "New Run"
+    );
+  } else if (state === "levelComplete") {
+    showOverlay(
+      "LEVEL COMPLETE",
+      `Get ready for level ${level + 1}. The ball gets faster and the brick wall grows.`,
+      "Next Level"
+    );
+  } else {
+    hideOverlay();
+  }
 });
 
 // Wait until all three script files have loaded, then start.
