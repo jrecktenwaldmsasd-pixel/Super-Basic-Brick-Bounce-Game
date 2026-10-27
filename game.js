@@ -18,7 +18,57 @@ const GameState = {
   combo: 0
 };
 
+const STATS_KEY = "brick-breaker-stats-v1";
+const defaultStats = {
+  bestScore: 0,
+  wins: 0,
+  losses: 0
+};
+
+let stats = { ...defaultStats };
 let audioContext = null;
+
+function loadStats() {
+  try {
+    const raw = localStorage.getItem(STATS_KEY);
+    if (!raw) {
+      return { ...defaultStats };
+    }
+    const parsed = JSON.parse(raw);
+    return { ...defaultStats, ...parsed };
+  } catch (error) {
+    return { ...defaultStats };
+  }
+}
+
+function saveStats() {
+  localStorage.setItem(STATS_KEY, JSON.stringify(stats));
+}
+
+function updateStatsDisplay() {
+  const winsValue = document.getElementById("winsValue");
+  const lossesValue = document.getElementById("lossesValue");
+  if (winsValue) {
+    winsValue.textContent = String(stats.wins);
+  }
+  if (lossesValue) {
+    lossesValue.textContent = String(stats.losses);
+  }
+}
+
+function recordRunResult(isWin) {
+  if (isWin) {
+    stats.wins += 1;
+  } else {
+    stats.losses += 1;
+  }
+  if (GameState.score > stats.bestScore) {
+    stats.bestScore = GameState.score;
+  }
+  saveStats();
+  updateStatsDisplay();
+  updateScoreDisplay();
+}
 
 function ensureAudioContext() {
   if (!audioContext) {
@@ -403,7 +453,7 @@ muteButton.addEventListener("click", function () {
   updateMuteButton();
 });
 
-let bestScore = Number(localStorage.getItem("brick-breaker-best-score") || 0);
+let bestScore = stats.bestScore;
 
 function updateLivesDisplay() {
   if (livesValue) {
@@ -434,7 +484,8 @@ function updateLevelDisplay() {
 function updateBestScore() {
   if (GameState.score > bestScore) {
     bestScore = GameState.score;
-    localStorage.setItem("brick-breaker-best-score", String(bestScore));
+    stats.bestScore = bestScore;
+    saveStats();
   }
   updateScoreDisplay();
 }
@@ -491,11 +542,17 @@ function launchBall(shouldLaunch = true) {
   if (state === "start" || state === "gameOver") {
     startNewGame();
   } else if (state === "levelComplete") {
-    startNextLevel();
+    if (isBossWaveLevel(level)) {
+      startNewGame();
+    } else {
+      startNextLevel();
+    }
   } else if (state === "paused") {
     paused = false;
     state = "playing";
     hideOverlay();
+  } else if (state === "bossComplete") {
+    startNewGame();
   }
 
   if (!shouldLaunch || state !== "playing" || ballLaunched) {
@@ -653,6 +710,18 @@ function update() {
 
   if (bricks.length === 0) {
     powerUps.length = 0;
+    if (isBossWaveLevel(level)) {
+      recordRunResult(true);
+      state = "bossComplete";
+      playWinSound();
+      showOverlay(
+        "BOSS DEFEATED",
+        `You cleared the boss wave on level ${level}. Press the button to start a fresh run.`,
+        "New Run"
+      );
+      return;
+    }
+
     state = "levelComplete";
     playWinSound();
     showOverlay(
@@ -681,6 +750,7 @@ function update() {
       updateScoreDisplay();
 
       if (GameState.lives <= 0) {
+        recordRunResult(false);
         state = "gameOver";
         playLoseSound();
         showOverlay(
@@ -928,6 +998,9 @@ function frame(now) {
 }
 
 function start() {
+  stats = loadStats();
+  bestScore = stats.bestScore;
+  updateStatsDisplay();
   bricks = makeBricks();  // bricks.js
   resetBall();
   lastTime = performance.now();
@@ -943,7 +1016,7 @@ function start() {
   updateLivesDisplay();
   updateScoreDisplay();
   updateLevelDisplay();
-  showOverlay("READY?", "Move with the arrow keys or A and D. Press Space to launch. Press P to pause or resume.", "Start Game");
+  showOverlay("READY?", "Move with the arrow keys or A and D. Press Space to launch. Press P to pause or resume. Every 5th level is a boss wave.", "Start Game");
   requestAnimationFrame(frame);
 }
 
