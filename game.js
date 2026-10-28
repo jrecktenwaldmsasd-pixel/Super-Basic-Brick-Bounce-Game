@@ -22,11 +22,26 @@ const STATS_KEY = "brick-breaker-stats-v1";
 const defaultStats = {
   bestScore: 0,
   wins: 0,
-  losses: 0
+  losses: 0,
+  unlockedCosmetics: ["rainbow", "off"],
+  paddleSkin: "rainbow",
+  ballTrail: "off"
 };
 
 let stats = { ...defaultStats };
 let audioContext = null;
+const COSMETICS = {
+  paddle: [
+    { id: "rainbow", label: "Rainbow", requirement: "Always unlocked", unlocked: () => true },
+    { id: "solar", label: "Solar", requirement: "Win a run", unlocked: () => stats.wins >= 1 },
+    { id: "ice", label: "Ice", requirement: "Best score: 500", unlocked: () => stats.bestScore >= 500 }
+  ],
+  trail: [
+    { id: "off", label: "Off", requirement: "Always unlocked", unlocked: () => true },
+    { id: "comet", label: "Comet", requirement: "Win a run", unlocked: () => stats.wins >= 1 },
+    { id: "spark", label: "Spark", requirement: "Best score: 1,000", unlocked: () => stats.bestScore >= 1000 }
+  ]
+};
 
 function loadStats() {
   try {
@@ -35,7 +50,13 @@ function loadStats() {
       return { ...defaultStats };
     }
     const parsed = JSON.parse(raw);
-    return { ...defaultStats, ...parsed };
+    return {
+      ...defaultStats,
+      ...parsed,
+      unlockedCosmetics: Array.isArray(parsed.unlockedCosmetics)
+        ? [...new Set(parsed.unlockedCosmetics)]
+        : [...defaultStats.unlockedCosmetics]
+    };
   } catch (error) {
     return { ...defaultStats };
   }
@@ -65,6 +86,7 @@ function recordRunResult(isWin) {
   if (GameState.score > stats.bestScore) {
     stats.bestScore = GameState.score;
   }
+  refreshCosmeticUnlocks();
   saveStats();
   updateStatsDisplay();
   updateScoreDisplay();
@@ -152,7 +174,7 @@ function playLoseSound() {
 const BALL_SPEED = 4;
 const MAX_BALL_SPEED = 7;
 const BASE_PADDLE_WIDTH = 90;
-const POWER_UP_TYPES = ["life", "paddle", "slow", "multi"];
+const POWER_UP_TYPES = ["life", "paddle", "slow", "multi", "shield", "laser"];
 const DIFFICULTIES = {
   easy: { speedMultiplier: 0.8, startingLives: 5 },
   normal: { speedMultiplier: 1, startingLives: 3 },
@@ -176,6 +198,7 @@ function makeBall(
   speedMultiplier = 1
 ) {
   return {
+    trail: [],
     component: {
       ...component,
       x,
@@ -194,6 +217,9 @@ let balls = [ball];
 let ballLaunched = false;
 let paddleBoostTimer = 0;
 let slowBallTimer = 0;
+let shieldTimer = 0;
+let laserCharges = 0;
+const laserShots = [];
 const powerUps = [];
 
 function resetBall() {
@@ -355,7 +381,9 @@ function spawnPowerUp(x, y) {
       life: "#fbbf24",
       paddle: "#34d399",
       slow: "#60a5fa",
-      multi: "#f472b6"
+      multi: "#f472b6",
+      shield: "#38bdf8",
+      laser: "#f87171"
     }[type]
   });
 }
@@ -396,6 +424,19 @@ function activatePowerUp(type) {
   if (type === "multi") {
     spawnMultiball();
     createParticleBurst(paddle.component.x + paddle.component.width / 2, paddle.component.y, "#f472b6");
+    return;
+  }
+
+  if (type === "shield") {
+    shieldTimer = 360;
+    createParticleBurst(paddle.component.x + paddle.component.width / 2, paddle.component.y, "#38bdf8");
+    return;
+  }
+
+  if (type === "laser") {
+    laserCharges = Math.min(5, laserCharges + 3);
+    updateAbilityControls();
+    createParticleBurst(paddle.component.x + paddle.component.width / 2, paddle.component.y, "#f87171");
   }
 }
 
@@ -413,10 +454,32 @@ function drawPowerUps() {
       life: "+",
       paddle: "P",
       slow: "S",
-      multi: "M"
+      multi: "M",
+      shield: "S",
+      laser: "L"
     };
 
     ctx.fillText(labels[powerUp.type], powerUp.x, powerUp.y + 1);
+  }
+}
+
+function updateLaserShots() {
+  for (let shotIndex = laserShots.length - 1; shotIndex >= 0; shotIndex--) {
+    const shot = laserShots[shotIndex];
+    shot.y -= shot.speed;
+
+    if (shot.y + shot.height < 0) {
+      laserShots.splice(shotIndex, 1);
+      continue;
+    }
+
+    for (let brickIndex = 0; brickIndex < bricks.length; brickIndex++) {
+      if (boxesTouch({ component: shot }, bricks[brickIndex])) {
+        hitBrick(bricks[brickIndex], brickIndex);
+        laserShots.splice(shotIndex, 1);
+        break;
+      }
+    }
   }
 }
 
@@ -444,6 +507,98 @@ const levelValue = document.getElementById("levelValue");
 const difficultySelect = document.getElementById("difficultySelect");
 const difficultyControl = difficultySelect.closest(".difficulty-control");
 const muteButton = document.getElementById("muteButton");
+const laserButton = document.getElementById("laserButton");
+const paddleSkinSelect = document.getElementById("paddleSkinSelect");
+const ballTrailSelect = document.getElementById("ballTrailSelect");
+const unlockStatus = document.getElementById("unlockStatus");
+
+function updateCosmeticControls() {
+  for (const [select, cosmetics, selectedId] of [
+    [paddleSkinSelect, COSMETICS.paddle, stats.paddleSkin],
+    [ballTrailSelect, COSMETICS.trail, stats.ballTrail]
+  ]) {
+    select.replaceChildren();
+    for (const cosmetic of cosmetics) {
+      const option = document.createElement("option");
+      option.value = cosmetic.id;
+      option.textContent = stats.unlockedCosmetics.includes(cosmetic.id)
+        ? cosmetic.label
+        : `${cosmetic.label} (${cosmetic.requirement})`;
+      option.disabled = !stats.unlockedCosmetics.includes(cosmetic.id);
+      select.append(option);
+    }
+    if (!stats.unlockedCosmetics.includes(selectedId)) {
+      if (select === paddleSkinSelect) {
+        stats.paddleSkin = "rainbow";
+      } else {
+        stats.ballTrail = "off";
+      }
+    }
+    select.value = select === paddleSkinSelect ? stats.paddleSkin : stats.ballTrail;
+  }
+}
+
+function refreshCosmeticUnlocks() {
+  const newlyUnlocked = [];
+  for (const cosmetic of [...COSMETICS.paddle, ...COSMETICS.trail]) {
+    if (cosmetic.unlocked() && !stats.unlockedCosmetics.includes(cosmetic.id)) {
+      stats.unlockedCosmetics.push(cosmetic.id);
+      if (cosmetic.id !== "rainbow" && cosmetic.id !== "off") {
+        newlyUnlocked.push(cosmetic.label);
+      }
+    }
+  }
+
+  if (newlyUnlocked.length > 0) {
+    saveStats();
+    unlockStatus.textContent = `Achievement unlocked: ${newlyUnlocked.join(" and ")}.`;
+  } else if (stats.wins < 1) {
+    unlockStatus.textContent = "Win a run to unlock the Solar paddle and Comet trail.";
+  } else if (stats.bestScore < 1000) {
+    unlockStatus.textContent = "Reach a best score of 500 for Ice and 1,000 for Spark.";
+  } else {
+    unlockStatus.textContent = "All cosmetics unlocked.";
+  }
+
+  updateCosmeticControls();
+}
+
+function updateAbilityControls() {
+  laserButton.textContent = `Laser: ${laserCharges}`;
+  laserButton.disabled = laserCharges === 0 || state !== "playing";
+  laserButton.setAttribute("aria-label", `Fire laser, ${laserCharges} shots available`);
+}
+
+function fireLaser() {
+  if (state !== "playing" || laserCharges <= 0) {
+    return;
+  }
+
+  laserCharges -= 1;
+  for (const offset of [0.28, 0.72]) {
+    laserShots.push({
+      x: paddle.component.x + paddle.component.width * offset - 2,
+      y: paddle.component.y - 14,
+      width: 4,
+      height: 14,
+      speed: 9
+    });
+  }
+  playTone(680, 0.08, 0.04, "square", -180);
+  updateAbilityControls();
+}
+
+paddleSkinSelect.addEventListener("change", function () {
+  stats.paddleSkin = paddleSkinSelect.value;
+  saveStats();
+});
+
+ballTrailSelect.addEventListener("change", function () {
+  stats.ballTrail = ballTrailSelect.value;
+  saveStats();
+});
+
+laserButton.addEventListener("click", fireLaser);
 
 function updateMuteButton() {
   muteButton.textContent = soundMuted ? "Sound: Off" : "Sound: On";
@@ -490,6 +645,7 @@ function updateBestScore() {
     stats.bestScore = bestScore;
     saveStats();
   }
+  refreshCosmeticUnlocks();
   updateScoreDisplay();
 }
 
@@ -517,6 +673,9 @@ function startNewGame() {
   level = 1;
   paddleBoostTimer = 0;
   slowBallTimer = 0;
+  shieldTimer = 0;
+  laserCharges = 0;
+  laserShots.length = 0;
   shakeTimer = 0;
   paddle.component.width = BASE_PADDLE_WIDTH;
   centerPaddle();
@@ -528,6 +687,7 @@ function startNewGame() {
   paused = false;
   won = false;
   state = "playing";
+  updateAbilityControls();
   bricks = makeBricks(level);
   resetBall();
   hideOverlay();
@@ -677,6 +837,9 @@ document.addEventListener("keydown", function (event) {
   if (!event.repeat && event.code === "Space") {
     launchBall();
   }
+  if (!event.repeat && key === "f" && !isTextEntry) {
+    fireLaser();
+  }
   if (!event.repeat && key === "r" && state === "gameOver") {
     startNewGame();
   }
@@ -710,6 +873,7 @@ function update() {
   updateParticles();
   updateShootingStars();
   updatePowerUps();
+  updateAbilityControls();
 
   if (state !== "playing" || paused || won) {
     if (shakeTimer > 0) {
@@ -737,6 +901,10 @@ function update() {
     slowBallTimer -= 1;
   }
 
+  if (shieldTimer > 0) {
+    shieldTimer -= 1;
+  }
+
   if (ballLaunched) {
     applyBallSpeedSettings();
   }
@@ -751,6 +919,8 @@ function update() {
   for (const activeBall of [...balls]) {
     bounceOffBricks(activeBall); // collisions.js
   }
+
+  updateLaserShots();
 
   for (const powerUp of [...powerUps]) {
     const powerUpBox = {
@@ -791,7 +961,15 @@ function update() {
     return;
   }
 
-  const fallenBalls = balls.filter((activeBall) => activeBall.component.y > HEIGHT);
+  let fallenBalls = balls.filter((activeBall) => activeBall.component.y > HEIGHT);
+  if (fallenBalls.length > 0 && shieldTimer > 0) {
+    const savedBall = fallenBalls[0].component;
+    savedBall.y = HEIGHT - savedBall.height;
+    savedBall.vy = -Math.abs(savedBall.vy || getCurrentBallSpeed());
+    shieldTimer = 0;
+    createParticleBurst(savedBall.x + savedBall.width / 2, HEIGHT - 8, "#38bdf8");
+    fallenBalls = balls.filter((activeBall) => activeBall.component.y > HEIGHT);
+  }
   if (fallenBalls.length > 0) {
     balls = balls.filter((activeBall) => activeBall.component.y <= HEIGHT);
     if (balls.length === 0) {
@@ -983,10 +1161,24 @@ function draw() {
 
   const hueTime = performance.now() * 0.0007;
 
+  if (shieldTimer > 0) {
+    ctx.save();
+    ctx.shadowBlur = 18;
+    ctx.shadowColor = "#38bdf8";
+    ctx.fillStyle = "rgba(56, 189, 248, 0.85)";
+    ctx.fillRect(0, HEIGHT - 6, WIDTH, 3);
+    ctx.restore();
+  }
+
   ctx.save();
   ctx.shadowBlur = 26;
-  ctx.shadowColor = rainbowColor(hueTime);
-  ctx.fillStyle = rainbowColor(hueTime);
+  const paddleColor = stats.paddleSkin === "solar"
+    ? "#facc15"
+    : stats.paddleSkin === "ice"
+      ? "#67e8f9"
+      : rainbowColor(hueTime);
+  ctx.shadowColor = paddleColor;
+  ctx.fillStyle = paddleColor;
   ctx.fillRect(
     paddle.component.x,
     paddle.component.y,
@@ -997,6 +1189,17 @@ function draw() {
 
   for (const activeBall of balls) {
     ctx.save();
+    for (let trailIndex = 0; trailIndex < activeBall.trail.length; trailIndex++) {
+      const point = activeBall.trail[trailIndex];
+      ctx.globalAlpha = (trailIndex + 1) / (activeBall.trail.length + 1) * 0.5;
+      ctx.fillStyle = stats.ballTrail === "comet"
+        ? "#60a5fa"
+        : stats.ballTrail === "spark"
+          ? rainbowColor(hueTime + trailIndex * 0.08)
+          : "transparent";
+      ctx.fillRect(point.x - 3, point.y - 3, 6, 6);
+    }
+    ctx.globalAlpha = 1;
     ctx.shadowBlur = 30;
     ctx.shadowColor = rainbowColor(hueTime + 0.18);
     ctx.fillStyle = rainbowColor(hueTime + 0.18);
@@ -1010,6 +1213,14 @@ function draw() {
   }
 
   drawBricks();  // bricks.js
+  for (const shot of laserShots) {
+    ctx.save();
+    ctx.shadowBlur = 14;
+    ctx.shadowColor = "#f87171";
+    ctx.fillStyle = "#fecaca";
+    ctx.fillRect(shot.x, shot.y, shot.width, shot.height);
+    ctx.restore();
+  }
   drawPowerUps();
 
   for (const particle of particles) {
@@ -1059,6 +1270,7 @@ function frame(now) {
 function start() {
   stats = loadStats();
   bestScore = stats.bestScore;
+  refreshCosmeticUnlocks();
   updateStatsDisplay();
   bricks = makeBricks();  // bricks.js
   resetBall();
@@ -1071,10 +1283,14 @@ function start() {
   GameState.combo = 0;
   level = 1;
   powerUps.length = 0;
+  shieldTimer = 0;
+  laserCharges = 0;
+  laserShots.length = 0;
   paddle.component.width = BASE_PADDLE_WIDTH;
   updateLivesDisplay();
   updateScoreDisplay();
   updateLevelDisplay();
+  updateAbilityControls();
   showOverlay("READY?", "Move with the arrow keys or A and D. Press Space to launch. Press P to pause or resume. Every 5th level is a boss wave.", "Start Game");
   requestAnimationFrame(frame);
 }

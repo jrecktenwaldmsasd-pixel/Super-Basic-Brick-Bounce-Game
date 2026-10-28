@@ -65,7 +65,20 @@
         </div>
       </div>
     </div>
-    <p id="instructions">Move the paddle with the arrow keys, A and D, or drag/tap on the game. Press Space to launch, P to pause or resume, and R to restart after game over.</p>
+    <section class="customization-panel" aria-labelledby="customizationTitle">
+      <h2 id="customizationTitle">Pilot Loadout</h2>
+      <div class="customization-controls">
+        <label for="paddleSkinSelect">Paddle
+          <select id="paddleSkinSelect"></select>
+        </label>
+        <label for="ballTrailSelect">Ball trail
+          <select id="ballTrailSelect"></select>
+        </label>
+        <button id="laserButton" type="button" disabled>Laser: 0</button>
+      </div>
+      <p id="unlockStatus" aria-live="polite"></p>
+    </section>
+    <p id="instructions">Move with the arrows, A/D, or drag. Space launches; F fires a charged laser. Press P to pause or R to restart after game over.</p>
     <p class="boss-schedule">Boss battles happen on levels 5, 10, 15, and every 5 levels after that.</p>
 
     <section class="powerup-panel" aria-labelledby="powerupsTitle">
@@ -103,6 +116,32 @@
           <div class="powerup-copy">
             <h3>Multi-Ball</h3>
             <p>Splits the ball into several orbiting shots to break more bricks.</p>
+          </div>
+        </article>
+
+        <article class="powerup-card shield">
+          <div class="powerup-icon" aria-hidden="true">
+            <svg viewBox="0 0 32 32" focusable="false">
+              <path d="M16 3 26 7v7c0 7-4.5 11-10 15C10.5 25 6 21 6 14V7l10-4Z" />
+              <path d="m11 16 3 3 7-8" />
+            </svg>
+          </div>
+          <div class="powerup-copy">
+            <h3>Safety Shield</h3>
+            <p>Deploys a short-lived field that saves one ball from falling.</p>
+          </div>
+        </article>
+
+        <article class="powerup-card laser">
+          <div class="powerup-icon" aria-hidden="true">
+            <svg viewBox="0 0 32 32" focusable="false">
+              <path d="m5 22 8-5 6 2 3-4-7-4-1-6-4 1 1 6-6 5Z" />
+              <path d="m20 9 7-5M23 13h7M19 6l1-5" />
+            </svg>
+          </div>
+          <div class="powerup-copy">
+            <h3>Laser Charges</h3>
+            <p>Grants three paired shots. Press F or tap the Laser button to fire.</p>
           </div>
         </article>
       </div>
@@ -192,6 +231,17 @@
       for (const activeBall of balls) {
         const data = activeBall.component;
         if (ballLaunched) {
+          if (stats.ballTrail !== "off") {
+            activeBall.trail.push({
+              x: data.x + data.width / 2,
+              y: data.y + data.height / 2
+            });
+            if (activeBall.trail.length > 10) {
+              activeBall.trail.shift();
+            }
+          } else {
+            activeBall.trail.length = 0;
+          }
           if (data.vx < 0) {
             moveBallLeft(data);
           } else {
@@ -199,6 +249,7 @@
           }
           data.y += data.vy;
         } else {
+          activeBall.trail.length = 0;
           data.x = paddle.component.x + (paddle.component.width - data.width) / 2;
           data.y = paddle.component.y - data.height;
         }

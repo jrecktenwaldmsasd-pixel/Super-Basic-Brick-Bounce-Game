@@ -79,6 +79,32 @@ function bounceOffPaddle(currentBall) {
   }
 }
 
+function hitBrick(brick, index) {
+  const brickData = brick.component;
+  GameState.combo = Math.min(12, (GameState.combo || 0) + 1);
+  const comboMultiplier = 1 + (GameState.combo - 1) * 0.2;
+  GameState.score += Math.round(10 * comboMultiplier);
+  updateBestScore();
+  createParticleBurst(
+    brickData.x + brickData.width / 2,
+    brickData.y + brickData.height / 2,
+    brickData.type === "armored" ? "#fb923c" : rainbowColor((performance.now() * 0.0008) + index * 0.06)
+  );
+  shakeTimer = Math.max(shakeTimer, 6);
+  playBrickSound();
+  brickData.hitsRemaining -= 1;
+
+  if (brickData.hitsRemaining <= 0) {
+    if (Math.random() < brickData.dropChance) {
+      spawnPowerUp(
+        brickData.x + brickData.width / 2,
+        brickData.y + brickData.height / 2
+      );
+    }
+    bricks.splice(index, 1);
+  }
+}
+
 
 // The ball bounces off and breaks the brick it touches.
 function bounceOffBricks(currentBall) {
@@ -112,27 +138,7 @@ function bounceOffBricks(currentBall) {
       }
     }
 
-    GameState.combo = Math.min(12, (GameState.combo || 0) + 1);
-    const comboMultiplier = 1 + (GameState.combo - 1) * 0.2;
-    GameState.score += Math.round(10 * comboMultiplier);
-    updateBestScore();
-    createParticleBurst(
-      brickData.x + brickData.width / 2,
-      brickData.y + brickData.height / 2,
-      brickData.type === "armored" ? "#fb923c" : rainbowColor((performance.now() * 0.0008) + index * 0.06)
-    );
-    shakeTimer = Math.max(shakeTimer, 6);
-    playBrickSound();
-    brickData.hitsRemaining -= 1;
-    if (brickData.hitsRemaining <= 0) {
-      if (Math.random() < brickData.dropChance) {
-        spawnPowerUp(
-          brickData.x + brickData.width / 2,
-          brickData.y + brickData.height / 2
-        );
-      }
-      bricks.splice(index, 1);
-    }
+    hitBrick(brick, index);
     break;  // bounce off one brick per update, then stop looking
   }
 }
