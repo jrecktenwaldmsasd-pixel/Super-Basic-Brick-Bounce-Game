@@ -23,6 +23,7 @@ const defaultStats = {
   bestScore: 0,
   wins: 0,
   losses: 0,
+  achievements: [],
   unlockedCosmetics: ["rainbow", "off"],
   paddleSkin: "rainbow",
   ballTrail: "off"
@@ -34,14 +35,21 @@ const COSMETICS = {
   paddle: [
     { id: "rainbow", label: "Rainbow", requirement: "Always unlocked", unlocked: () => true },
     { id: "solar", label: "Solar", requirement: "Win a run", unlocked: () => stats.wins >= 1 },
-    { id: "ice", label: "Ice", requirement: "Best score: 500", unlocked: () => stats.bestScore >= 500 }
+    { id: "ice", label: "Ice", requirement: "Best score: 500", unlocked: () => stats.bestScore >= 500 },
+    { id: "nova", label: "Nova", requirement: "Defeat a boss", unlocked: () => stats.achievements.includes("boss-breaker") }
   ],
   trail: [
     { id: "off", label: "Off", requirement: "Always unlocked", unlocked: () => true },
     { id: "comet", label: "Comet", requirement: "Win a run", unlocked: () => stats.wins >= 1 },
-    { id: "spark", label: "Spark", requirement: "Best score: 1,000", unlocked: () => stats.bestScore >= 1000 }
+    { id: "spark", label: "Spark", requirement: "Best score: 1,000", unlocked: () => stats.bestScore >= 1000 },
+    { id: "flare", label: "Flare", requirement: "Reach a 12x combo", unlocked: () => stats.achievements.includes("combo-master") }
   ]
 };
+const ACHIEVEMENTS = [
+  { id: "combo-master", name: "Combo Master", description: "Reach a 12x combo.", reward: "Flare ball trail" },
+  { id: "boss-breaker", name: "Boss Breaker", description: "Defeat a boss wave.", reward: "Nova paddle" },
+  { id: "flawless-level", name: "Untouchable", description: "Clear a level without losing a life.", reward: "Achievement badge" }
+];
 
 function loadStats() {
   try {
@@ -53,6 +61,9 @@ function loadStats() {
     return {
       ...defaultStats,
       ...parsed,
+      achievements: Array.isArray(parsed.achievements)
+        ? [...new Set(parsed.achievements)]
+        : [],
       unlockedCosmetics: Array.isArray(parsed.unlockedCosmetics)
         ? [...new Set(parsed.unlockedCosmetics)]
         : [...defaultStats.unlockedCosmetics]
@@ -182,6 +193,7 @@ const DIFFICULTIES = {
 };
 let selectedDifficulty = "normal";
 let level = 1;
+let levelWithoutLifeLoss = true;
 
 function getCurrentBallSpeed() {
   return Math.min(
@@ -511,6 +523,48 @@ const laserButton = document.getElementById("laserButton");
 const paddleSkinSelect = document.getElementById("paddleSkinSelect");
 const ballTrailSelect = document.getElementById("ballTrailSelect");
 const unlockStatus = document.getElementById("unlockStatus");
+const achievementStatus = document.getElementById("achievementStatus");
+const achievementList = document.getElementById("achievementList");
+
+function refreshAchievementDisplay() {
+  achievementList.replaceChildren();
+  for (const achievement of ACHIEVEMENTS) {
+    const item = document.createElement("li");
+    const title = document.createElement("strong");
+    const description = document.createElement("span");
+    const reward = document.createElement("small");
+    const unlocked = stats.achievements.includes(achievement.id);
+
+    item.className = unlocked ? "achievement unlocked" : "achievement";
+    title.textContent = `${achievement.name} - ${unlocked ? "Unlocked" : "Locked"}`;
+    description.textContent = achievement.description;
+    reward.textContent = `Reward: ${achievement.reward}`;
+    item.append(title, description, reward);
+    achievementList.append(item);
+  }
+
+  const unlockedCount = ACHIEVEMENTS.filter((achievement) =>
+    stats.achievements.includes(achievement.id)
+  ).length;
+  achievementStatus.textContent = `${unlockedCount} of ${ACHIEVEMENTS.length} achievements unlocked.`;
+}
+
+function unlockAchievements(ids) {
+  const newlyUnlocked = ACHIEVEMENTS.filter((achievement) =>
+    ids.includes(achievement.id) && !stats.achievements.includes(achievement.id)
+  );
+  if (newlyUnlocked.length === 0) {
+    return;
+  }
+
+  stats.achievements.push(...newlyUnlocked.map((achievement) => achievement.id));
+  refreshCosmeticUnlocks();
+  saveStats();
+  refreshAchievementDisplay();
+  achievementStatus.textContent = `Achievement unlocked: ${newlyUnlocked
+    .map((achievement) => `${achievement.name} (${achievement.reward})`)
+    .join("; ")}.`;
+}
 
 function updateCosmeticControls() {
   for (const [select, cosmetics, selectedId] of [
@@ -671,6 +725,7 @@ function startNewGame() {
   GameState.score = 0;
   GameState.combo = 0;
   level = 1;
+  levelWithoutLifeLoss = true;
   paddleBoostTimer = 0;
   slowBallTimer = 0;
   shieldTimer = 0;
@@ -695,6 +750,7 @@ function startNewGame() {
 
 function startNextLevel() {
   level += 1;
+  levelWithoutLifeLoss = true;
   GameState.combo = 0;
   updateLevelDisplay();
   updateScoreDisplay();
@@ -726,6 +782,7 @@ function goToLevel(targetLevel) {
   }
 
   level = targetLevel;
+  levelWithoutLifeLoss = true;
   GameState.combo = 0;
   updateLevelDisplay();
   updateScoreDisplay();
@@ -939,6 +996,10 @@ function update() {
 
   if (bricks.length === 0) {
     powerUps.length = 0;
+    unlockAchievements([
+      ...(levelWithoutLifeLoss ? ["flawless-level"] : []),
+      ...(isBossWaveLevel(level) ? ["boss-breaker"] : [])
+    ]);
     if (isBossWaveLevel(level)) {
       recordRunResult(true);
       state = "bossComplete";
@@ -975,6 +1036,7 @@ function update() {
     if (balls.length === 0) {
       powerUps.length = 0;
       GameState.lives -= 1;
+      levelWithoutLifeLoss = false;
       GameState.combo = 0;
       shakeTimer = 24;
       createParticleBurst(
@@ -1271,6 +1333,7 @@ function start() {
   stats = loadStats();
   bestScore = stats.bestScore;
   refreshCosmeticUnlocks();
+  refreshAchievementDisplay();
   updateStatsDisplay();
   bricks = makeBricks();  // bricks.js
   resetBall();
@@ -1282,6 +1345,7 @@ function start() {
   GameState.score = 0;
   GameState.combo = 0;
   level = 1;
+  levelWithoutLifeLoss = true;
   powerUps.length = 0;
   shieldTimer = 0;
   laserCharges = 0;

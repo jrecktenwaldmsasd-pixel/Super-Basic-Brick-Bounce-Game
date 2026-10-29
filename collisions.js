@@ -84,6 +84,9 @@ function bounceOffPaddle(currentBall) {
 function hitBrick(brick, index) {
   const brickData = brick.component;
   GameState.combo = Math.min(12, (GameState.combo || 0) + 1);
+  if (GameState.combo === 12) {
+    unlockAchievements(["combo-master"]);
+  }
   const comboMultiplier = 1 + (GameState.combo - 1) * 0.2;
   GameState.score += Math.round(10 * comboMultiplier);
   updateBestScore();
