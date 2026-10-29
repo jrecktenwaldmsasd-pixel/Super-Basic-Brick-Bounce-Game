@@ -6,6 +6,8 @@ Choose Easy, Normal, or Hard before starting a game. Brick types include armored
 
 Chain brick hits without touching the paddle to build a combo multiplier, up to 12x. The combo resets when the ball hits the paddle or a life is lost.
 
+Select **Daily Challenge** before starting to play that day's modifier on Normal difficulty. Modifiers rotate daily between a faster ball, a narrower paddle, and extra moving bricks. Challenge runs have a separate high score saved for each day.
+
 The music player accepts local MP3s and can load a shared playlist from Supabase Storage. Shared tracks are available to everyone who opens the game. Use **Save** beside any track to download a copy.
 
 ## Shared Music Setup

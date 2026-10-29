@@ -21,6 +21,7 @@ const GameState = {
 const STATS_KEY = "brick-breaker-stats-v1";
 const defaultStats = {
   bestScore: 0,
+  challengeBestScores: {},
   wins: 0,
   losses: 0,
   achievements: [],
@@ -61,6 +62,11 @@ function loadStats() {
     return {
       ...defaultStats,
       ...parsed,
+      challengeBestScores: parsed.challengeBestScores
+        && typeof parsed.challengeBestScores === "object"
+        && !Array.isArray(parsed.challengeBestScores)
+        ? parsed.challengeBestScores
+        : {},
       achievements: Array.isArray(parsed.achievements)
         ? [...new Set(parsed.achievements)]
         : [],
@@ -94,7 +100,7 @@ function recordRunResult(isWin) {
   } else {
     stats.losses += 1;
   }
-  if (GameState.score > stats.bestScore) {
+  if (!challengeMode && GameState.score > stats.bestScore) {
     stats.bestScore = GameState.score;
   }
   refreshCosmeticUnlocks();
@@ -191,14 +197,31 @@ const DIFFICULTIES = {
   normal: { speedMultiplier: 1, startingLives: 3 },
   hard: { speedMultiplier: 1.2, startingLives: 2 }
 };
+const CHALLENGE_MODIFIERS = [
+  { id: "quick-ball", name: "Quick Ball", description: "Ball speed is increased by 25%." },
+  { id: "tiny-paddle", name: "Tiny Paddle", description: "Your paddle is 30% narrower." },
+  { id: "moving-bricks", name: "Moving Bricks", description: "More bricks move from side to side." }
+];
+const dailyChallengeDate = new Date().toISOString().slice(0, 10);
+const dailyChallengeDay = Math.floor(Date.parse(`${dailyChallengeDate}T00:00:00Z`) / 86400000);
+const dailyChallenge = CHALLENGE_MODIFIERS[dailyChallengeDay % CHALLENGE_MODIFIERS.length];
 let selectedDifficulty = "normal";
+let challengeMode = false;
 let level = 1;
 let levelWithoutLifeLoss = true;
 
 function getCurrentBallSpeed() {
   return Math.min(
-    (BALL_SPEED + (level - 1) * 0.4) * DIFFICULTIES[selectedDifficulty].speedMultiplier,
+    (BALL_SPEED + (level - 1) * 0.4)
+      * DIFFICULTIES[selectedDifficulty].speedMultiplier
+      * (challengeMode && dailyChallenge.id === "quick-ball" ? 1.25 : 1),
     MAX_BALL_SPEED
+  );
+}
+
+function getBasePaddleWidth() {
+  return BASE_PADDLE_WIDTH * (
+    challengeMode && dailyChallenge.id === "tiny-paddle" ? 0.7 : 1
   );
 }
 
@@ -303,7 +326,7 @@ const paddle = {
     ...component,
     x: WIDTH / 2 - 45,
     y: HEIGHT - 30,
-    width: BASE_PADDLE_WIDTH,
+    width: getBasePaddleWidth(),
     height: 12,
     speed: 6,
     controlled: true
@@ -420,7 +443,7 @@ function activatePowerUp(type) {
   }
 
   if (type === "paddle") {
-    paddle.component.width = BASE_PADDLE_WIDTH * 1.5;
+    paddle.component.width = getBasePaddleWidth() * 1.5;
     paddleBoostTimer = 600;
     paddle.component.x = Math.min(paddle.component.x, WIDTH - paddle.component.width);
     createParticleBurst(paddle.component.x + paddle.component.width / 2, paddle.component.y, "#34d399");
@@ -518,6 +541,10 @@ const comboValue = document.getElementById("comboValue");
 const levelValue = document.getElementById("levelValue");
 const difficultySelect = document.getElementById("difficultySelect");
 const difficultyControl = difficultySelect.closest(".difficulty-control");
+const challengeControl = document.getElementById("challengeControl");
+const challengeModeSelect = document.getElementById("challengeModeSelect");
+const challengeInfo = document.getElementById("challengeInfo");
+const bestScoreLabel = document.getElementById("bestScoreLabel");
 const muteButton = document.getElementById("muteButton");
 const laserButton = document.getElementById("laserButton");
 const paddleSkinSelect = document.getElementById("paddleSkinSelect");
@@ -654,6 +681,14 @@ ballTrailSelect.addEventListener("change", function () {
 
 laserButton.addEventListener("click", fireLaser);
 
+challengeModeSelect.addEventListener("change", function () {
+  difficultySelect.disabled = challengeModeSelect.checked;
+  if (challengeModeSelect.checked) {
+    difficultySelect.value = "normal";
+  }
+  updateChallengeDisplay();
+});
+
 function updateMuteButton() {
   muteButton.textContent = soundMuted ? "Sound: Off" : "Sound: On";
   muteButton.setAttribute("aria-pressed", String(soundMuted));
@@ -666,6 +701,24 @@ muteButton.addEventListener("click", function () {
 });
 
 let bestScore = stats.bestScore;
+let challengeBestScore = 0;
+
+function updateChallengeDisplay() {
+  challengeBestScore = Number.isFinite(stats.challengeBestScores[dailyChallengeDate])
+    ? stats.challengeBestScores[dailyChallengeDate]
+    : 0;
+  updateChallengeInfo();
+  bestScoreLabel.textContent = getDisplayedChallengeMode() ? "Ch Best" : "Best";
+  updateScoreDisplay();
+}
+
+function updateChallengeInfo() {
+  challengeInfo.textContent = `Daily challenge (${dailyChallengeDate}): ${dailyChallenge.name} — ${dailyChallenge.description} Daily best: ${challengeBestScore}.`;
+}
+
+function getDisplayedChallengeMode() {
+  return challengeMode || (state !== "playing" && challengeModeSelect.checked);
+}
 
 function updateLivesDisplay() {
   if (livesValue) {
@@ -679,7 +732,7 @@ function updateScoreDisplay() {
   }
 
   if (bestScoreValue) {
-    bestScoreValue.textContent = String(bestScore);
+    bestScoreValue.textContent = String(getDisplayedChallengeMode() ? challengeBestScore : bestScore);
   }
 
   if (comboValue) {
@@ -694,7 +747,12 @@ function updateLevelDisplay() {
 }
 
 function updateBestScore() {
-  if (GameState.score > bestScore) {
+  if (challengeMode && GameState.score > challengeBestScore) {
+    challengeBestScore = GameState.score;
+    stats.challengeBestScores[dailyChallengeDate] = challengeBestScore;
+    saveStats();
+    updateChallengeInfo();
+  } else if (!challengeMode && GameState.score > bestScore) {
     bestScore = GameState.score;
     stats.bestScore = bestScore;
     saveStats();
@@ -708,6 +766,7 @@ function showOverlay(title, message, buttonText) {
   overlayMessage.textContent = message;
   overlayButton.textContent = buttonText;
   difficultyControl.hidden = title !== "READY?" && title !== "GAME OVER";
+  challengeControl.hidden = difficultyControl.hidden;
   levelSelectForm.hidden = true;
   overlayButton.hidden = false;
   overlay.classList.remove("hidden");
@@ -720,7 +779,13 @@ function hideOverlay() {
 }
 
 function startNewGame() {
-  selectedDifficulty = difficultySelect.value;
+  challengeMode = challengeModeSelect.checked;
+  if (challengeMode) {
+    difficultySelect.value = "normal";
+  }
+  difficultySelect.disabled = challengeMode;
+  selectedDifficulty = challengeMode ? "normal" : difficultySelect.value;
+  updateChallengeDisplay();
   GameState.lives = DIFFICULTIES[selectedDifficulty].startingLives;
   GameState.score = 0;
   GameState.combo = 0;
@@ -732,7 +797,7 @@ function startNewGame() {
   laserCharges = 0;
   laserShots.length = 0;
   shakeTimer = 0;
-  paddle.component.width = BASE_PADDLE_WIDTH;
+  paddle.component.width = getBasePaddleWidth();
   centerPaddle();
   powerUps.length = 0;
   updateLivesDisplay();
@@ -762,12 +827,16 @@ function startNextLevel() {
 }
 
 function openLevelSelect() {
+  if (challengeMode || challengeModeSelect.checked) {
+    return;
+  }
   if (state === "playing") {
     paused = true;
   }
   overlayTitle.textContent = "LEVEL SELECT";
   overlayMessage.textContent = "Choose any level to jump straight to it.";
   difficultyControl.hidden = true;
+  challengeControl.hidden = true;
   overlayButton.hidden = true;
   levelSelectForm.hidden = false;
   levelSelectInput.value = String(level);
@@ -949,7 +1018,7 @@ function update() {
   if (paddleBoostTimer > 0) {
     paddleBoostTimer -= 1;
     if (paddleBoostTimer <= 0) {
-      paddle.component.width = BASE_PADDLE_WIDTH;
+      paddle.component.width = getBasePaddleWidth();
       paddle.component.x = Math.min(paddle.component.x, WIDTH - paddle.component.width);
     }
   }
@@ -1054,7 +1123,7 @@ function update() {
         playLoseSound();
         showOverlay(
           "GAME OVER",
-          `Final score: ${GameState.score}. Best score: ${bestScore}. Press R or use the button to try again.`,
+          `Final score: ${GameState.score}. Best score: ${getDisplayedChallengeMode() ? challengeBestScore : bestScore}. Press R or use the button to try again.`,
           "Restart Game"
         );
         return;
@@ -1332,6 +1401,9 @@ function frame(now) {
 function start() {
   stats = loadStats();
   bestScore = stats.bestScore;
+  challengeModeSelect.checked = false;
+  difficultySelect.disabled = false;
+  updateChallengeDisplay();
   refreshCosmeticUnlocks();
   refreshAchievementDisplay();
   updateStatsDisplay();
@@ -1350,7 +1422,7 @@ function start() {
   shieldTimer = 0;
   laserCharges = 0;
   laserShots.length = 0;
-  paddle.component.width = BASE_PADDLE_WIDTH;
+  paddle.component.width = getBasePaddleWidth();
   updateLivesDisplay();
   updateScoreDisplay();
   updateLevelDisplay();
@@ -1396,7 +1468,7 @@ cancelLevelSelect.addEventListener("click", function () {
   } else if (state === "gameOver") {
     showOverlay(
       "GAME OVER",
-      `Final score: ${GameState.score}. Best score: ${bestScore}. Press R or use the button to try again.`,
+      `Final score: ${GameState.score}. Best score: ${getDisplayedChallengeMode() ? challengeBestScore : bestScore}. Press R or use the button to try again.`,
       "Restart Game"
     );
   } else if (state === "bossComplete") {

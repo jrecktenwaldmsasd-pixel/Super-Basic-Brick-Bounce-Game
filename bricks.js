@@ -84,10 +84,14 @@ function makeBricks(level = 1) {
   // Center the whole block of bricks on the screen.
   const totalWidth = BRICK_COLUMNS * BRICK_WIDTH + (BRICK_COLUMNS - 1) * BRICK_GAP;
   const left = (WIDTH - totalWidth) / 2;
+  const movingColumns = challengeMode && dailyChallenge.id === "moving-bricks"
+    ? [1, 2, BRICK_COLUMNS - 3, BRICK_COLUMNS - 2]
+    : [1, BRICK_COLUMNS - 2];
+  const movementSpeed = challengeMode && dailyChallenge.id === "moving-bricks" ? 1.15 : 0.8;
 
   for (let row = 0; row < rows; row++) {
     for (let col = 0; col < BRICK_COLUMNS; col++) {
-      const moving = row === 0 && (col === 1 || col === BRICK_COLUMNS - 2);
+      const moving = row === 0 && movingColumns.includes(col);
       const armored = row === rows - 1 && col % 3 === 0;
       const powerDropper = row === 1 && col % 4 === 2;
       list.push({
@@ -101,7 +105,7 @@ function makeBricks(level = 1) {
           hitsRemaining: armored ? 2 : 1,
           maxHits: armored ? 2 : 1,
           dropChance: powerDropper ? 0.8 : 0.22,
-          movement: moving ? (col === 1 ? 1 : -1) * 0.8 : 0
+          movement: moving ? (col % 2 === 1 ? 1 : -1) * movementSpeed : 0
         },
         startX: left + col * (BRICK_WIDTH + BRICK_GAP)
       });

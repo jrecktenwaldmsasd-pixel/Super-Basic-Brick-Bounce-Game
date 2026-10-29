@@ -19,7 +19,7 @@
           <span id="scoreValue">0</span>
         </div>
         <div class="hud-item">
-          <span class="hud-label">Best</span>
+          <span id="bestScoreLabel" class="hud-label">Best</span>
           <span id="bestScoreValue">0</span>
         </div>
         <div class="hud-item">
@@ -53,6 +53,10 @@
               <option value="hard">Hard</option>
             </select>
           </label>
+          <label id="challengeControl" class="challenge-control" for="challengeModeSelect">
+            <input id="challengeModeSelect" type="checkbox">
+            Daily Challenge
+          </label>
           <form id="levelSelectForm" class="level-select-form" hidden>
             <label for="levelSelectInput">Choose a level</label>
             <input id="levelSelectInput" type="number" min="1" step="1" value="5" required>
@@ -65,6 +69,7 @@
         </div>
       </div>
     </div>
+    <p id="challengeInfo" class="challenge-info" aria-live="polite"></p>
     <section class="customization-panel" aria-labelledby="customizationTitle">
       <h2 id="customizationTitle">Pilot Loadout</h2>
       <div class="customization-controls">

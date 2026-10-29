@@ -195,6 +195,34 @@ canvas {
   display: none;
 }
 
+.challenge-control {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 12px;
+  color: #f0abfc;
+  font-weight: bold;
+}
+
+.challenge-control[hidden] {
+  display: none;
+}
+
+.challenge-control input {
+  accent-color: #d946ef;
+}
+
+.challenge-info {
+  margin: 10px auto 0;
+  padding: 8px 12px;
+  border: 1px solid rgba(217, 70, 239, 0.4);
+  background: rgba(88, 28, 135, 0.25);
+  color: #f5d0fe;
+  font-size: 0.8rem;
+  line-height: 1.5;
+}
+
 #difficultySelect {
   border: 1px solid rgba(255, 255, 255, 0.4);
   border-radius: 8px;
