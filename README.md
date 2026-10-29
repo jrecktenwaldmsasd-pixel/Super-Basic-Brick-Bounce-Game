@@ -4,6 +4,8 @@ Block Breaker runs in the browser. Move the paddle with the arrow keys or A/D, o
 
 Choose Easy, Normal, or Hard before starting a game. Brick types include armored bricks that need two hits, moving bricks, and power-up bricks. Use the Sound button in the HUD to mute or unmute audio.
 
+Chain brick hits without touching the paddle to build a combo multiplier, up to 12x. The combo resets when the ball hits the paddle or a life is lost.
+
 The music player accepts local MP3s and can load a shared playlist from Supabase Storage. Shared tracks are available to everyone who opens the game. Use **Save** beside any track to download a copy.
 
 ## Shared Music Setup

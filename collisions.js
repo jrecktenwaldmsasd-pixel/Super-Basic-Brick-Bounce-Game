@@ -49,6 +49,8 @@ function bounceOffPaddle(currentBall) {
   const paddleData = paddle.component;
   if (boxesTouch(currentBall, paddle) && ballData.vy > 0) {
     ballData.y = paddleData.y - ballData.height;  // sit on top of the paddle
+    GameState.combo = 0;
+    updateScoreDisplay();
     const hitOffset = Math.max(
       -1,
       Math.min(
