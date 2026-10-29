@@ -2,7 +2,7 @@
 
 Block Breaker runs in the browser. Move the paddle with the arrow keys or A/D, or drag/tap on the game area on touch devices. Press P to pause or resume.
 
-Choose Easy, Normal, or Hard before starting a game. Brick types include armored bricks that need two hits, moving bricks, and power-up bricks. Use the Sound button in the HUD to mute or unmute audio.
+Choose Easy, Normal, or Hard before starting a game. Brick types include armored bricks that need two hits, moving bricks, and power-up bricks. Boss waves feature warning-marked focused and spread attacks; dodge the falling shots to avoid a temporary paddle shrink. Use the Sound button in the HUD to mute or unmute audio.
 
 Chain brick hits without touching the paddle to build a combo multiplier, up to 12x. The combo resets when the ball hits the paddle or a life is lost.
 

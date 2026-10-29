@@ -34,7 +34,12 @@ function makeBossWave(level = 1) {
       hitsRemaining: bossHits,
       maxHits: bossHits,
       dropChance: 0.9,
-      movement: 1.1
+      movement: 1.1,
+      attackCooldown: 150,
+      attackWarningTimer: 0,
+      attackPattern: "focused",
+      attackTargets: [],
+      attackCount: 0
     },
     startX: bossX
   });
@@ -151,7 +156,9 @@ function drawBricks() {
       power: "#facc15",
       boss: "#f472b6"
     };
-    ctx.fillStyle = colors[data.type] || `hsl(${(cycle * 360 + i * 12) % 360}, 100%, 65%)`;
+    ctx.fillStyle = data.type === "boss" && data.attackWarningTimer > 0
+      ? "#fb7185"
+      : colors[data.type] || `hsl(${(cycle * 360 + i * 12) % 360}, 100%, 65%)`;
     ctx.fillRect(data.x, data.y, data.width, data.height);
 
     if (data.type === "armored") {
@@ -191,7 +198,11 @@ function drawBricks() {
       ctx.font = "bold 12px Courier New";
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
-      ctx.fillText("BOSS", data.x + data.width / 2, data.y + data.height / 2 + 1);
+      ctx.fillText(
+        data.attackWarningTimer > 0 ? "AIMING" : "BOSS",
+        data.x + data.width / 2,
+        data.y + data.height / 2 + 1
+      );
     }
   }
 }

@@ -251,11 +251,14 @@ const ball = makeBall();
 let balls = [ball];
 let ballLaunched = false;
 let paddleBoostTimer = 0;
+let paddleDebuffTimer = 0;
 let slowBallTimer = 0;
 let shieldTimer = 0;
 let laserCharges = 0;
 const laserShots = [];
 const powerUps = [];
+const bossProjectiles = [];
+let paddleHitFlashTimer = 0;
 
 function resetBall() {
   const nextBall = makeBall(
@@ -335,6 +338,19 @@ const paddle = {
 
 function centerPaddle() {
   paddle.component.x = (WIDTH - paddle.component.width) / 2;
+}
+
+function updatePaddleWidth() {
+  const boostMultiplier = paddleBoostTimer > 0 ? 1.5 : 1;
+  const damageMultiplier = paddleDebuffTimer > 0 ? 0.65 : 1;
+  paddle.component.width = Math.max(
+    36,
+    getBasePaddleWidth() * boostMultiplier * damageMultiplier
+  );
+  paddle.component.x = Math.max(
+    0,
+    Math.min(WIDTH - paddle.component.width, paddle.component.x)
+  );
 }
 
 const stars = [];
@@ -443,9 +459,9 @@ function activatePowerUp(type) {
   }
 
   if (type === "paddle") {
-    paddle.component.width = getBasePaddleWidth() * 1.5;
+    paddleDebuffTimer = 0;
     paddleBoostTimer = 600;
-    paddle.component.x = Math.min(paddle.component.x, WIDTH - paddle.component.width);
+    updatePaddleWidth();
     createParticleBurst(paddle.component.x + paddle.component.width / 2, paddle.component.y, "#34d399");
     return;
   }
@@ -515,6 +531,131 @@ function updateLaserShots() {
         break;
       }
     }
+  }
+}
+
+function updateBossAttacks() {
+  const boss = bricks.find((brick) => brick.component.type === "boss")?.component;
+  if (!boss) {
+    bossProjectiles.length = 0;
+    return;
+  }
+
+  if (ballLaunched) {
+    if (boss.attackWarningTimer > 0) {
+      boss.attackWarningTimer -= 1;
+      if (boss.attackWarningTimer === 0) {
+        const startY = boss.y + boss.height;
+        const projectileSpeed = 3.6;
+        const travelFrames = (paddle.component.y - 14 - startY) / projectileSpeed;
+        boss.attackTargets.forEach((target, index) => {
+          const startX = boss.x + boss.width * (index + 1) / (boss.attackTargets.length + 1);
+          bossProjectiles.push({
+            x: startX - 7,
+            y: startY,
+            width: 14,
+            height: 14,
+            vx: (target.x - startX) / travelFrames,
+            vy: projectileSpeed
+          });
+        });
+        boss.attackTargets = [];
+      }
+    } else {
+      boss.attackCooldown -= 1;
+      if (boss.attackCooldown <= 0) {
+        const targetX = paddle.component.x + paddle.component.width / 2;
+        boss.attackPattern = boss.attackCount % 2 === 0 ? "focused" : "spread";
+        const offsets = boss.attackPattern === "focused" ? [0] : [-58, 0, 58];
+        boss.attackTargets = offsets.map((offset) => ({
+          x: Math.max(12, Math.min(WIDTH - 12, targetX + offset))
+        }));
+        boss.attackCount += 1;
+        boss.attackWarningTimer = 54;
+        boss.attackCooldown = boss.hitsRemaining <= boss.maxHits / 2 ? 150 : 210;
+      }
+    }
+  }
+
+  for (let index = bossProjectiles.length - 1; index >= 0; index--) {
+    const projectile = bossProjectiles[index];
+    projectile.x += projectile.vx;
+    projectile.y += projectile.vy;
+
+    if (
+      projectile.x < WIDTH &&
+      projectile.x + projectile.width > 0 &&
+      projectile.x < paddle.component.x + paddle.component.width &&
+      projectile.x + projectile.width > paddle.component.x &&
+      projectile.y < paddle.component.y + paddle.component.height &&
+      projectile.y + projectile.height > paddle.component.y
+    ) {
+      paddleBoostTimer = 0;
+      paddleDebuffTimer = 300;
+      paddleHitFlashTimer = 45;
+      updatePaddleWidth();
+      createParticleBurst(
+        paddle.component.x + paddle.component.width / 2,
+        paddle.component.y,
+        "#fb7185"
+      );
+      playWallSound();
+      bossProjectiles.splice(index, 1);
+      continue;
+    }
+
+    if (projectile.y > HEIGHT) {
+      bossProjectiles.splice(index, 1);
+    }
+  }
+}
+
+function drawBossAttacks() {
+  const boss = bricks.find((brick) => brick.component.type === "boss")?.component;
+  if (boss?.attackWarningTimer > 0) {
+    ctx.save();
+    ctx.strokeStyle = boss.attackPattern === "focused" ? "#fb7185" : "#fbbf24";
+    ctx.fillStyle = ctx.strokeStyle;
+    ctx.shadowColor = ctx.strokeStyle;
+    ctx.shadowBlur = 12;
+    ctx.globalAlpha = 0.4 + Math.sin(performance.now() * 0.02) * 0.2;
+    ctx.setLineDash([6, 8]);
+    for (const target of boss.attackTargets) {
+      ctx.beginPath();
+      ctx.moveTo(target.x, boss.y + boss.height);
+      ctx.lineTo(target.x, paddle.component.y);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(target.x, paddle.component.y - 5, 11, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+    ctx.setLineDash([]);
+    ctx.font = "bold 12px Courier New";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "bottom";
+    ctx.fillText(
+      boss.attackPattern === "focused" ? "TARGET LOCK — MOVE!" : "SPREAD SHOT — MOVE!",
+      WIDTH / 2,
+      paddle.component.y - 20
+    );
+    ctx.restore();
+  }
+
+  for (const projectile of bossProjectiles) {
+    ctx.save();
+    ctx.shadowBlur = 16;
+    ctx.shadowColor = "#fb7185";
+    ctx.fillStyle = "#fecdd3";
+    ctx.beginPath();
+    ctx.arc(
+      projectile.x + projectile.width / 2,
+      projectile.y + projectile.height / 2,
+      projectile.width / 2,
+      0,
+      Math.PI * 2
+    );
+    ctx.fill();
+    ctx.restore();
   }
 }
 
@@ -792,10 +933,13 @@ function startNewGame() {
   level = 1;
   levelWithoutLifeLoss = true;
   paddleBoostTimer = 0;
+  paddleDebuffTimer = 0;
   slowBallTimer = 0;
   shieldTimer = 0;
   laserCharges = 0;
   laserShots.length = 0;
+  bossProjectiles.length = 0;
+  paddleHitFlashTimer = 0;
   shakeTimer = 0;
   paddle.component.width = getBasePaddleWidth();
   centerPaddle();
@@ -816,6 +960,7 @@ function startNewGame() {
 function startNextLevel() {
   level += 1;
   levelWithoutLifeLoss = true;
+  bossProjectiles.length = 0;
   GameState.combo = 0;
   updateLevelDisplay();
   updateScoreDisplay();
@@ -852,6 +997,7 @@ function goToLevel(targetLevel) {
 
   level = targetLevel;
   levelWithoutLifeLoss = true;
+  bossProjectiles.length = 0;
   GameState.combo = 0;
   updateLevelDisplay();
   updateScoreDisplay();
@@ -1018,9 +1164,19 @@ function update() {
   if (paddleBoostTimer > 0) {
     paddleBoostTimer -= 1;
     if (paddleBoostTimer <= 0) {
-      paddle.component.width = getBasePaddleWidth();
-      paddle.component.x = Math.min(paddle.component.x, WIDTH - paddle.component.width);
+      updatePaddleWidth();
     }
+  }
+
+  if (paddleDebuffTimer > 0) {
+    paddleDebuffTimer -= 1;
+    if (paddleDebuffTimer <= 0) {
+      updatePaddleWidth();
+    }
+  }
+
+  if (paddleHitFlashTimer > 0) {
+    paddleHitFlashTimer -= 1;
   }
 
   if (slowBallTimer > 0) {
@@ -1047,6 +1203,7 @@ function update() {
   }
 
   updateLaserShots();
+  updateBossAttacks();
 
   for (const powerUp of [...powerUps]) {
     const powerUpBox = {
@@ -1307,7 +1464,9 @@ function draw() {
     ? "#facc15"
     : stats.paddleSkin === "ice"
       ? "#67e8f9"
-      : rainbowColor(hueTime);
+      : stats.paddleSkin === "nova"
+        ? "#f0abfc"
+        : rainbowColor(hueTime);
   ctx.shadowColor = paddleColor;
   ctx.fillStyle = paddleColor;
   ctx.fillRect(
@@ -1316,6 +1475,20 @@ function draw() {
     paddle.component.width,
     paddle.component.height
   );
+  if (paddleHitFlashTimer > 0) {
+    ctx.fillStyle = "rgba(251, 113, 133, 0.75)";
+    ctx.fillRect(
+      paddle.component.x,
+      paddle.component.y,
+      paddle.component.width,
+      paddle.component.height
+    );
+    ctx.fillStyle = "#fecdd3";
+    ctx.font = "bold 10px Courier New";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "bottom";
+    ctx.fillText("SYSTEM JAMMED", paddle.component.x + paddle.component.width / 2, paddle.component.y - 4);
+  }
   ctx.restore();
 
   for (const activeBall of balls) {
@@ -1344,6 +1517,7 @@ function draw() {
   }
 
   drawBricks();  // bricks.js
+  drawBossAttacks();
   for (const shot of laserShots) {
     ctx.save();
     ctx.shadowBlur = 14;
@@ -1419,10 +1593,14 @@ function start() {
   level = 1;
   levelWithoutLifeLoss = true;
   powerUps.length = 0;
+  bossProjectiles.length = 0;
+  paddleBoostTimer = 0;
+  paddleDebuffTimer = 0;
+  paddleHitFlashTimer = 0;
   shieldTimer = 0;
   laserCharges = 0;
   laserShots.length = 0;
-  paddle.component.width = getBasePaddleWidth();
+  updatePaddleWidth();
   updateLivesDisplay();
   updateScoreDisplay();
   updateLevelDisplay();
