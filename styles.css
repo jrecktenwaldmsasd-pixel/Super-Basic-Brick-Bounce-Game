@@ -107,6 +107,7 @@ main {
 }
 
 #muteButton,
+#fullscreenButton,
 #laserButton {
   flex: 0 0 auto;
   border: 1px solid rgba(255, 255, 255, 0.45);
@@ -122,9 +123,35 @@ main {
 
 #muteButton:hover,
 #muteButton:focus-visible,
+#fullscreenButton:hover,
+#fullscreenButton:focus-visible,
 #laserButton:hover:not(:disabled),
 #laserButton:focus-visible {
   background: #334155;
+}
+
+#fullscreenStatus {
+  font-size: 0.7rem;
+  letter-spacing: normal;
+  text-transform: none;
+}
+
+.game-area:fullscreen {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100vw;
+  height: 100vh;
+  background: #000;
+}
+
+.game-area:fullscreen canvas {
+  width: min(100vw, 133.333vh);
+  max-height: 100vh;
+}
+
+.game-area:fullscreen .hud {
+  left: max(12px, calc((100vw - 133.333vh) / 2 + 12px));
 }
 
 #laserButton:disabled {
@@ -921,6 +948,11 @@ audio {
   }
 
   #muteButton {
+    font-size: 0.6rem;
+    padding: 4px 6px;
+  }
+
+  #fullscreenButton {
     font-size: 0.6rem;
     padding: 4px 6px;
   }

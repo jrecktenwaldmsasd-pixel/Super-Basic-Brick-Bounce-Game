@@ -698,6 +698,9 @@ const challengeModeSelect = document.getElementById("challengeModeSelect");
 const challengeInfo = document.getElementById("challengeInfo");
 const bestScoreLabel = document.getElementById("bestScoreLabel");
 const muteButton = document.getElementById("muteButton");
+const gameArea = document.querySelector(".game-area");
+const fullscreenButton = document.getElementById("fullscreenButton");
+const fullscreenStatus = document.getElementById("fullscreenStatus");
 const laserButton = document.getElementById("laserButton");
 const paddleSkinSelect = document.getElementById("paddleSkinSelect");
 const ballTrailSelect = document.getElementById("ballTrailSelect");
@@ -850,6 +853,31 @@ muteButton.addEventListener("click", function () {
   soundMuted = !soundMuted;
   localStorage.setItem("brick-breaker-muted", String(soundMuted));
   updateMuteButton();
+});
+
+fullscreenButton.addEventListener("click", async function () {
+  fullscreenStatus.hidden = true;
+  try {
+    if (document.fullscreenElement === gameArea) {
+      await document.exitFullscreen();
+    } else if (document.fullscreenEnabled && typeof gameArea.requestFullscreen === "function") {
+      await gameArea.requestFullscreen();
+    } else {
+      fullscreenStatus.textContent = "Fullscreen is not supported by this browser.";
+      fullscreenStatus.hidden = false;
+    }
+  } catch (error) {
+    console.error("Could not change game fullscreen mode.", error);
+    fullscreenStatus.textContent = "Fullscreen was blocked by the browser.";
+    fullscreenStatus.hidden = false;
+  }
+});
+
+document.addEventListener("fullscreenchange", function () {
+  const isGameFullscreen = document.fullscreenElement === gameArea;
+  fullscreenButton.textContent = isGameFullscreen ? "Exit Fullscreen" : "Fullscreen";
+  fullscreenButton.setAttribute("aria-pressed", String(isGameFullscreen));
+  fullscreenStatus.hidden = true;
 });
 
 let bestScore = stats.bestScore;
