@@ -213,6 +213,45 @@ canvas {
   accent-color: #d946ef;
 }
 
+.upgrade-choices[hidden] {
+  display: none;
+}
+
+.upgrade-choices {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.upgrade-choice {
+  display: grid;
+  gap: 4px;
+  padding: 10px 12px;
+  border: 1px solid rgba(167, 139, 250, 0.65);
+  border-radius: 10px;
+  background: rgba(49, 46, 129, 0.65);
+  color: #fff;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.upgrade-choice:hover,
+.upgrade-choice:focus-visible {
+  border-color: #f0abfc;
+  background: rgba(126, 34, 206, 0.7);
+}
+
+.upgrade-choice strong {
+  color: #f0abfc;
+}
+
+.upgrade-choice span {
+  color: #e2e8f0;
+  font-size: 0.8rem;
+  line-height: 1.4;
+}
+
 .challenge-info {
   margin: 10px auto 0;
   padding: 8px 12px;

@@ -202,6 +202,12 @@ const CHALLENGE_MODIFIERS = [
   { id: "tiny-paddle", name: "Tiny Paddle", description: "Your paddle is 30% narrower." },
   { id: "moving-bricks", name: "Moving Bricks", description: "More bricks move from side to side." }
 ];
+const RUN_UPGRADES = [
+  { id: "wide-paddle", name: "Wide Paddle", description: "Keep your paddle 10% wider for this run." },
+  { id: "extra-life", name: "Emergency Reserve", description: "Gain one extra life." },
+  { id: "laser-capacitor", name: "Laser Capacitor", description: "Increase laser capacity by 2 and gain 3 shots." },
+  { id: "rapid-fire", name: "Rapid Fire", description: "Laser shots travel 20% faster for this run." }
+];
 const dailyChallengeDate = new Date().toISOString().slice(0, 10);
 const dailyChallengeDay = Math.floor(Date.parse(`${dailyChallengeDate}T00:00:00Z`) / 86400000);
 const dailyChallenge = CHALLENGE_MODIFIERS[dailyChallengeDay % CHALLENGE_MODIFIERS.length];
@@ -209,6 +215,10 @@ let selectedDifficulty = "normal";
 let challengeMode = false;
 let level = 1;
 let levelWithoutLifeLoss = true;
+let paddleUpgradeMultiplier = 1;
+let laserCapacityBonus = 0;
+let laserSpeedMultiplier = 1;
+let pendingUpgradeChoices = [];
 
 function getCurrentBallSpeed() {
   return Math.min(
@@ -222,7 +232,7 @@ function getCurrentBallSpeed() {
 function getBasePaddleWidth() {
   return BASE_PADDLE_WIDTH * (
     challengeMode && dailyChallenge.id === "tiny-paddle" ? 0.7 : 1
-  );
+  ) * paddleUpgradeMultiplier;
 }
 
 function makeBall(
@@ -485,7 +495,7 @@ function activatePowerUp(type) {
   }
 
   if (type === "laser") {
-    laserCharges = Math.min(5, laserCharges + 3);
+    laserCharges = Math.min(5 + laserCapacityBonus, laserCharges + 3);
     updateAbilityControls();
     createParticleBurst(paddle.component.x + paddle.component.width / 2, paddle.component.y, "#f87171");
   }
@@ -672,6 +682,7 @@ const overlay = document.getElementById("gameOverlay");
 const overlayTitle = document.getElementById("overlayTitle");
 const overlayMessage = document.getElementById("overlayMessage");
 const overlayButton = document.getElementById("overlayButton");
+const upgradeChoices = document.getElementById("upgradeChoices");
 const levelSelectForm = document.getElementById("levelSelectForm");
 const levelSelectInput = document.getElementById("levelSelectInput");
 const cancelLevelSelect = document.getElementById("cancelLevelSelect");
@@ -803,7 +814,7 @@ function fireLaser() {
       y: paddle.component.y - 14,
       width: 4,
       height: 14,
-      speed: 9
+      speed: 9 * laserSpeedMultiplier
     });
   }
   playTone(680, 0.08, 0.04, "square", -180);
@@ -909,12 +920,76 @@ function showOverlay(title, message, buttonText) {
   difficultyControl.hidden = title !== "READY?" && title !== "GAME OVER";
   challengeControl.hidden = difficultyControl.hidden;
   levelSelectForm.hidden = true;
+  upgradeChoices.hidden = true;
   overlayButton.hidden = false;
   overlay.classList.remove("hidden");
 }
 
+function showLevelUpgradeOverlay() {
+  overlayTitle.textContent = "CHOOSE AN UPGRADE";
+  overlayMessage.textContent = `Choose one upgrade before level ${level + 1}. It lasts for the rest of this run.`;
+  difficultyControl.hidden = true;
+  challengeControl.hidden = true;
+  levelSelectForm.hidden = true;
+  overlayButton.hidden = true;
+  upgradeChoices.replaceChildren();
+
+  for (const upgrade of pendingUpgradeChoices) {
+    const button = document.createElement("button");
+    const name = document.createElement("strong");
+    const description = document.createElement("span");
+    button.type = "button";
+    button.className = "upgrade-choice";
+    name.textContent = upgrade.name;
+    description.textContent = upgrade.description;
+    button.append(name, description);
+    button.addEventListener("click", () => chooseRunUpgrade(upgrade.id));
+    upgradeChoices.append(button);
+  }
+
+  upgradeChoices.hidden = false;
+  overlay.classList.remove("hidden");
+}
+
+function getRunUpgradeChoices() {
+  const choices = [...RUN_UPGRADES];
+  for (let index = choices.length - 1; index > 0; index--) {
+    const swapIndex = Math.floor(Math.random() * (index + 1));
+    [choices[index], choices[swapIndex]] = [choices[swapIndex], choices[index]];
+  }
+  return choices.slice(0, 3);
+}
+
+function chooseRunUpgrade(upgradeId) {
+  if (state !== "levelComplete") {
+    return;
+  }
+  const upgrade = pendingUpgradeChoices.find((choice) => choice.id === upgradeId);
+  if (!upgrade) {
+    return;
+  }
+
+  if (upgrade.id === "wide-paddle") {
+    paddleUpgradeMultiplier += 0.1;
+    updatePaddleWidth();
+  } else if (upgrade.id === "extra-life") {
+    GameState.lives += 1;
+    updateLivesDisplay();
+  } else if (upgrade.id === "laser-capacitor") {
+    laserCapacityBonus += 2;
+    laserCharges = Math.min(5 + laserCapacityBonus, laserCharges + 3);
+    updateAbilityControls();
+  } else if (upgrade.id === "rapid-fire") {
+    laserSpeedMultiplier *= 1.2;
+  }
+
+  pendingUpgradeChoices = [];
+  startNextLevel();
+}
+
 function hideOverlay() {
   levelSelectForm.hidden = true;
+  upgradeChoices.hidden = true;
   overlayButton.hidden = false;
   overlay.classList.add("hidden");
 }
@@ -932,6 +1007,10 @@ function startNewGame() {
   GameState.combo = 0;
   level = 1;
   levelWithoutLifeLoss = true;
+  paddleUpgradeMultiplier = 1;
+  laserCapacityBonus = 0;
+  laserSpeedMultiplier = 1;
+  pendingUpgradeChoices = [];
   paddleBoostTimer = 0;
   paddleDebuffTimer = 0;
   slowBallTimer = 0;
@@ -984,6 +1063,7 @@ function openLevelSelect() {
   challengeControl.hidden = true;
   overlayButton.hidden = true;
   levelSelectForm.hidden = false;
+  upgradeChoices.hidden = true;
   levelSelectInput.value = String(level);
   overlay.classList.remove("hidden");
   levelSelectInput.focus();
@@ -995,6 +1075,7 @@ function goToLevel(targetLevel) {
     startNewGame();
   }
 
+  pendingUpgradeChoices = [];
   level = targetLevel;
   levelWithoutLifeLoss = true;
   bossProjectiles.length = 0;
@@ -1014,6 +1095,9 @@ function launchBall(shouldLaunch = true) {
   if (state === "start" || state === "gameOver") {
     startNewGame();
   } else if (state === "levelComplete") {
+    if (pendingUpgradeChoices.length > 0) {
+      return;
+    }
     if (isBossWaveLevel(level)) {
       startNewGame();
     } else {
@@ -1240,11 +1324,8 @@ function update() {
 
     state = "levelComplete";
     playWinSound();
-    showOverlay(
-      "LEVEL COMPLETE",
-      `Get ready for level ${level + 1}. The ball gets faster and the brick wall grows.`,
-      "Next Level"
-    );
+    pendingUpgradeChoices = getRunUpgradeChoices();
+    showLevelUpgradeOverlay();
     return;
   }
 
@@ -1592,6 +1673,10 @@ function start() {
   GameState.combo = 0;
   level = 1;
   levelWithoutLifeLoss = true;
+  paddleUpgradeMultiplier = 1;
+  laserCapacityBonus = 0;
+  laserSpeedMultiplier = 1;
+  pendingUpgradeChoices = [];
   powerUps.length = 0;
   bossProjectiles.length = 0;
   paddleBoostTimer = 0;
@@ -1656,11 +1741,7 @@ cancelLevelSelect.addEventListener("click", function () {
       "New Run"
     );
   } else if (state === "levelComplete") {
-    showOverlay(
-      "LEVEL COMPLETE",
-      `Get ready for level ${level + 1}. The ball gets faster and the brick wall grows.`,
-      "Next Level"
-    );
+    showLevelUpgradeOverlay();
   } else {
     hideOverlay();
   }
