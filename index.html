@@ -94,6 +94,65 @@
     <p id="instructions">Move with the arrows, A/D, or drag. Space launches; F fires a charged laser. Press P to pause or R to restart after game over.</p>
     <p class="boss-schedule">Boss battles happen on levels 5, 10, 15, and every 5 levels after that. Dodge the warning-marked shots or they will temporarily shrink your paddle.</p>
 
+    <section class="powerup-panel" aria-labelledby="brickGuideTitle">
+      <div class="powerup-header">
+        <p class="powerup-eyebrow">BRICK FIELD GUIDE</p>
+        <h2 id="brickGuideTitle">Brick types</h2>
+      </div>
+      <div class="powerup-grid brick-guide-grid">
+        <article class="powerup-card">
+          <div class="brick-guide-icon standard" aria-hidden="true"></div>
+          <div class="powerup-copy">
+            <h3>Standard Brick</h3>
+            <p>Breaks in one hit. Its color shifts with the rest of the field.</p>
+          </div>
+        </article>
+
+        <article class="powerup-card">
+          <div class="brick-guide-icon armored" aria-hidden="true"><span>2</span></div>
+          <div class="powerup-copy">
+            <h3>Armored Brick</h3>
+            <p>Takes two hits. The number shows how many remain.</p>
+          </div>
+        </article>
+
+        <article class="powerup-card">
+          <div class="brick-guide-icon moving" aria-hidden="true"><span>&lt; &gt;</span></div>
+          <div class="powerup-copy">
+            <h3>Moving Brick</h3>
+            <p>Slides side to side across the field and breaks in one hit.</p>
+          </div>
+        </article>
+
+        <article class="powerup-card">
+          <div class="brick-guide-icon power" aria-hidden="true"><span>+</span></div>
+          <div class="powerup-copy">
+            <h3>Power Brick</h3>
+            <p>Break it for an 80% chance to release a power-up.</p>
+          </div>
+        </article>
+
+        <article class="powerup-card">
+          <div class="brick-guide-icon explosive" aria-hidden="true"><span>!</span></div>
+          <div class="powerup-copy">
+            <h3>Explosive Brick</h3>
+            <p>Blasts nearby bricks when broken. Explosions can trigger other explosive bricks.</p>
+          </div>
+        </article>
+
+        <article class="powerup-card">
+          <div class="brick-guide-icon boss" aria-hidden="true">
+            <span>BOSS</span>
+            <span class="brick-guide-health"></span>
+          </div>
+          <div class="powerup-copy">
+            <h3>Boss Brick</h3>
+            <p>Appears every fifth level, takes repeated hits, and warns before aiming or spread attacks.</p>
+          </div>
+        </article>
+      </div>
+    </section>
+
     <section class="powerup-panel" aria-labelledby="powerupsTitle">
       <div class="powerup-header">
         <p class="powerup-eyebrow">POWER-UPS</p>
