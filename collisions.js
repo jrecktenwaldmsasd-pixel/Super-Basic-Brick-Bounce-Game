@@ -81,6 +81,34 @@ function bounceOffPaddle(currentBall) {
   }
 }
 
+function explodeBrick(brick) {
+  const brickData = brick.component;
+  const padding = BRICK_GAP + 1;
+  const blastArea = {
+    x: brickData.x - padding,
+    y: brickData.y - padding,
+    width: brickData.width + padding * 2,
+    height: brickData.height + padding * 2
+  };
+
+  for (const nearbyBrick of [...bricks]) {
+    if (nearbyBrick === brick) {
+      continue;
+    }
+
+    const nearbyData = nearbyBrick.component;
+    const isInBlast =
+      blastArea.x < nearbyData.x + nearbyData.width &&
+      blastArea.x + blastArea.width > nearbyData.x &&
+      blastArea.y < nearbyData.y + nearbyData.height &&
+      blastArea.y + blastArea.height > nearbyData.y;
+    const nearbyIndex = bricks.indexOf(nearbyBrick);
+    if (isInBlast && nearbyIndex !== -1) {
+      hitBrick(nearbyBrick, nearbyIndex);
+    }
+  }
+}
+
 function hitBrick(brick, index) {
   const brickData = brick.component;
   GameState.combo = Math.min(12, (GameState.combo || 0) + 1);
@@ -93,7 +121,11 @@ function hitBrick(brick, index) {
   createParticleBurst(
     brickData.x + brickData.width / 2,
     brickData.y + brickData.height / 2,
-    brickData.type === "armored" ? "#fb923c" : rainbowColor((performance.now() * 0.0008) + index * 0.06)
+    brickData.type === "armored"
+      ? "#fb923c"
+      : brickData.type === "explosive"
+        ? "#ef4444"
+        : rainbowColor((performance.now() * 0.0008) + index * 0.06)
   );
   shakeTimer = Math.max(shakeTimer, 6);
   playBrickSound();
@@ -107,6 +139,9 @@ function hitBrick(brick, index) {
       );
     }
     bricks.splice(index, 1);
+    if (brickData.type === "explosive") {
+      explodeBrick(brick);
+    }
   }
 }
 

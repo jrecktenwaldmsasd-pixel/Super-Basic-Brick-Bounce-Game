@@ -99,6 +99,7 @@ function makeBricks(level = 1) {
       const moving = row === 0 && movingColumns.includes(col);
       const armored = row === rows - 1 && col % 3 === 0;
       const powerDropper = row === 1 && col % 4 === 2;
+      const explosive = row === 2 && (col === 1 || col === BRICK_COLUMNS - 2);
       list.push({
         component: {
           ...component,
@@ -106,7 +107,7 @@ function makeBricks(level = 1) {
           y: BRICKS_TOP + row * (BRICK_HEIGHT + BRICK_GAP),
           width: BRICK_WIDTH,
           height: BRICK_HEIGHT,
-          type: moving ? "moving" : armored ? "armored" : powerDropper ? "power" : "standard",
+          type: moving ? "moving" : armored ? "armored" : powerDropper ? "power" : explosive ? "explosive" : "standard",
           hitsRemaining: armored ? 2 : 1,
           maxHits: armored ? 2 : 1,
           dropChance: powerDropper ? 0.8 : 0.22,
@@ -154,6 +155,7 @@ function drawBricks() {
       armored: "#f97316",
       moving: "#22d3ee",
       power: "#facc15",
+      explosive: "#ef4444",
       boss: "#f472b6"
     };
     ctx.fillStyle = data.type === "boss" && data.attackWarningTimer > 0
@@ -185,6 +187,12 @@ function drawBricks() {
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
       ctx.fillText("+", data.x + data.width / 2, data.y + data.height / 2);
+    } else if (data.type === "explosive") {
+      ctx.fillStyle = "#fff1f2";
+      ctx.font = "bold 14px Courier New";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText("!", data.x + data.width / 2, data.y + data.height / 2);
     } else if (data.type === "boss") {
       ctx.fillStyle = "rgba(15, 23, 42, 0.85)";
       ctx.fillRect(data.x, data.y - 12, data.width, 8);
