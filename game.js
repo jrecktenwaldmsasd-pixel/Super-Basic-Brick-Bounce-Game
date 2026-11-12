@@ -708,8 +708,10 @@ const unlockStatus = document.getElementById("unlockStatus");
 const achievementStatus = document.getElementById("achievementStatus");
 const achievementList = document.getElementById("achievementList");
 const tokenRainButton = document.getElementById("tokenRainButton");
+const stopTokenRainSongButton = document.getElementById("stopTokenRainSong");
 const tokenRainStatus = document.getElementById("tokenRainStatus");
 const tokenRain = document.getElementById("tokenRain");
+const tokenRainAudio = document.getElementById("tokenRainAudio");
 let tokenImageData = "";
 
 function refreshAchievementDisplay() {
@@ -845,6 +847,12 @@ function loadTokenImage() {
 
 loadTokenImage();
 
+function updateTokenRainSongControls() {
+  const isPlaying = !tokenRainAudio.paused && !tokenRainAudio.ended;
+  tokenRainButton.disabled = isPlaying || !tokenImageData;
+  stopTokenRainSongButton.disabled = !isPlaying;
+}
+
 tokenRainButton.addEventListener("click", function () {
   if (!tokenImageData) {
     return;
@@ -871,7 +879,32 @@ tokenRainButton.addEventListener("click", function () {
     }, { once: true });
     tokenRain.append(drop);
   }
-  tokenRainStatus.textContent = "Token rain! Click again after it finishes for another round.";
+  tokenRainButton.disabled = true;
+  stopTokenRainSongButton.disabled = false;
+  tokenRainStatus.textContent = "Token rain and song playing. The button will be ready when the song ends.";
+  tokenRainAudio.currentTime = 0;
+  tokenRainAudio.play().catch(function (error) {
+    updateTokenRainSongControls();
+    tokenRainStatus.textContent = `Token rain started, but the song could not play: ${error.message}`;
+  });
+});
+
+stopTokenRainSongButton.addEventListener("click", function () {
+  tokenRainAudio.pause();
+  tokenRainAudio.currentTime = 0;
+  updateTokenRainSongControls();
+  tokenRainStatus.textContent = "Song stopped. Click Rain tokens to play it again.";
+});
+
+tokenRainAudio.addEventListener("play", updateTokenRainSongControls);
+tokenRainAudio.addEventListener("pause", updateTokenRainSongControls);
+tokenRainAudio.addEventListener("ended", function () {
+  updateTokenRainSongControls();
+  tokenRainStatus.textContent = "Song finished. Click Rain tokens to play it again.";
+});
+tokenRainAudio.addEventListener("error", function () {
+  updateTokenRainSongControls();
+  tokenRainStatus.textContent = "Song file missing or couldn't be played. Add token-rain.webm beside index.html in the GitHub project.";
 });
 
 paddleSkinSelect.addEventListener("change", function () {

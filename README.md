@@ -8,7 +8,7 @@ Chain brick hits without touching the paddle to build a combo multiplier, up to 
 
 After each non-boss level, choose one of three run upgrades: a wider paddle, an extra life, more laser charges, or faster laser shots. Upgrades last until the run ends.
 
-For a visual-only effect, click **Rain tokens** to rain the image in `pirate-token.png`. To change it, upload a PNG named `pirate-token.png` to the GitHub repository's top level, beside `index.html`, and redeploy. The effect does not change gameplay.
+Click **Rain tokens** to rain the image in `pirate-token.png` and play `token-rain.webm`. Upload both files to the GitHub repository's top level, beside `index.html`. The button is ready again when the song ends; click **Stop song** to stop it early.
 
 Select **Daily Challenge** before starting to play that day's modifier on Normal difficulty. Modifiers rotate daily between a faster ball, a narrower paddle, and extra moving bricks. Challenge runs have a separate high score saved for each day.
 

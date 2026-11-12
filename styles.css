@@ -450,7 +450,8 @@ p {
   gap: 10px;
 }
 
-#tokenRainButton {
+#tokenRainButton,
+#stopTokenRainSong {
   display: inline-flex;
   min-height: 36px;
   align-items: center;
@@ -465,11 +466,13 @@ p {
   cursor: pointer;
 }
 
-#tokenRainButton:hover:not(:disabled) {
+#tokenRainButton:hover:not(:disabled),
+#stopTokenRainSong:hover:not(:disabled) {
   background: #334155;
 }
 
-#tokenRainButton:disabled {
+#tokenRainButton:disabled,
+#stopTokenRainSong:disabled {
   cursor: not-allowed;
   opacity: 0.55;
 }
