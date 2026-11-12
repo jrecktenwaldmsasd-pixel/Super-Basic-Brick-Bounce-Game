@@ -28,6 +28,24 @@ main {
   width: min(100%, 600px);
 }
 
+.token-rain {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.token-rain img {
+  position: absolute;
+  top: -72px;
+  width: var(--token-size);
+  height: var(--token-size);
+  object-fit: contain;
+  filter: drop-shadow(0 2px 5px rgba(0, 0, 0, 0.75));
+  animation: tokenRainFall var(--token-duration) linear forwards;
+}
+
 .hud {
   position: absolute;
   top: 12px;
@@ -423,6 +441,65 @@ p {
   background: #0f172a;
   color: #fff;
   font: inherit;
+}
+
+.token-rain-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+#tokenImageInput {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  clip-path: inset(50%);
+}
+
+.token-image-button,
+#tokenRainButton {
+  display: inline-flex;
+  min-height: 36px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  border-radius: 6px;
+  padding: 6px 10px;
+  background: #0f172a;
+  color: #fff;
+  font: inherit;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+.token-image-button:hover,
+#tokenRainButton:hover:not(:disabled) {
+  background: #334155;
+}
+
+#tokenRainButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+#tokenImageInput:focus-visible + .token-image-button {
+  outline: 2px solid #fff;
+  outline-offset: 3px;
+}
+
+.token-rain-status {
+  margin: 9px 0 0;
+  color: #bae6fd;
+  font-size: 0.75rem;
+  line-height: 1.4;
+  text-align: left;
+  text-shadow: none;
+  background: none;
+  animation: none;
 }
 
 #laserButton {
@@ -1006,6 +1083,17 @@ audio {
   50% { box-shadow: 0 0 18px rgba(120, 170, 255, 0.55), 0 0 30px rgba(145, 100, 255, 0.3); }
   75% { box-shadow: 0 0 18px rgba(255, 120, 220, 0.55), 0 0 30px rgba(255, 100, 160, 0.3); }
   100% { box-shadow: 0 0 18px rgba(255, 100, 100, 0.55), 0 0 30px rgba(255, 180, 80, 0.3); }
+}
+
+@keyframes tokenRainFall {
+  from {
+    top: -72px;
+    transform: translateX(0) rotate(0deg);
+  }
+  to {
+    top: 110%;
+    transform: translateX(var(--token-drift)) rotate(var(--token-rotation));
+  }
 }
 
 @media (max-width: 520px) {

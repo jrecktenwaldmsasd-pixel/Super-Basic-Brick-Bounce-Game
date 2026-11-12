@@ -707,6 +707,12 @@ const ballTrailSelect = document.getElementById("ballTrailSelect");
 const unlockStatus = document.getElementById("unlockStatus");
 const achievementStatus = document.getElementById("achievementStatus");
 const achievementList = document.getElementById("achievementList");
+const tokenImageInput = document.getElementById("tokenImageInput");
+const tokenRainButton = document.getElementById("tokenRainButton");
+const tokenRainStatus = document.getElementById("tokenRainStatus");
+const tokenRain = document.getElementById("tokenRain");
+let tokenImageData = "";
+let tokenImageLoadId = 0;
 
 function refreshAchievementDisplay() {
   achievementList.replaceChildren();
@@ -823,6 +829,89 @@ function fireLaser() {
   playTone(680, 0.08, 0.04, "square", -180);
   updateAbilityControls();
 }
+
+tokenImageInput.addEventListener("change", function () {
+  const file = tokenImageInput.files[0];
+  tokenImageInput.value = "";
+  const loadId = ++tokenImageLoadId;
+  tokenImageData = "";
+  tokenRainButton.disabled = true;
+
+  if (!file) {
+    tokenRainStatus.textContent = "Choose a PNG, JPG, GIF, or WebP image to get started.";
+    return;
+  }
+  if (!["image/png", "image/jpeg", "image/gif", "image/webp"].includes(file.type)) {
+    tokenRainStatus.textContent = "Please choose a PNG, JPG, GIF, or WebP image.";
+    return;
+  }
+  if (file.size > 10 * 1024 * 1024) {
+    tokenRainStatus.textContent = "That image is too large. Please choose an image under 10 MB.";
+    return;
+  }
+
+  tokenRainStatus.textContent = "Loading image...";
+  const reader = new FileReader();
+  reader.addEventListener("load", function () {
+    if (loadId !== tokenImageLoadId || typeof reader.result !== "string") {
+      return;
+    }
+
+    const image = new Image();
+    image.addEventListener("load", function () {
+      if (loadId !== tokenImageLoadId) {
+        return;
+      }
+      tokenImageData = reader.result;
+      tokenRainButton.disabled = false;
+      tokenRainStatus.textContent = "Image ready. Rain is purely cosmetic and won't affect the game.";
+    }, { once: true });
+    image.addEventListener("error", function () {
+      if (loadId !== tokenImageLoadId) {
+        return;
+      }
+      tokenRainStatus.textContent = "That image couldn't be opened. Please choose another file.";
+    }, { once: true });
+    image.src = reader.result;
+  }, { once: true });
+  reader.addEventListener("error", function () {
+    if (loadId !== tokenImageLoadId) {
+      return;
+    }
+    console.error("Could not read the selected token image.", reader.error);
+    tokenRainStatus.textContent = "The selected image couldn't be read. Please try another file.";
+  }, { once: true });
+  reader.readAsDataURL(file);
+});
+
+tokenRainButton.addEventListener("click", function () {
+  if (!tokenImageData) {
+    return;
+  }
+  const dropCount = 24;
+  if (tokenRain.childElementCount + dropCount > 72) {
+    tokenRainStatus.textContent = "Let the current token rain finish before starting another.";
+    return;
+  }
+
+  for (let index = 0; index < dropCount; index++) {
+    const drop = document.createElement("img");
+    const size = 36 + Math.random() * 32;
+    drop.src = tokenImageData;
+    drop.alt = "";
+    drop.draggable = false;
+    drop.style.left = `${Math.random() * 100}%`;
+    drop.style.setProperty("--token-size", `${size}px`);
+    drop.style.setProperty("--token-drift", `${Math.random() * 180 - 90}px`);
+    drop.style.setProperty("--token-rotation", `${Math.random() * 1080 - 540}deg`);
+    drop.style.setProperty("--token-duration", `${2.5 + Math.random() * 3}s`);
+    drop.addEventListener("animationend", function () {
+      drop.remove();
+    }, { once: true });
+    tokenRain.append(drop);
+  }
+  tokenRainStatus.textContent = "Token rain! Click again after it finishes for another round.";
+});
 
 paddleSkinSelect.addEventListener("change", function () {
   stats.paddleSkin = paddleSkinSelect.value;

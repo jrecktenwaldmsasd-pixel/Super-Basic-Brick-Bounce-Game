@@ -43,6 +43,7 @@
         <span id="fullscreenStatus" role="status" hidden></span>
       </div>
       <canvas id="game" width="600" height="450" aria-label="Block Breaker game"></canvas>
+      <div id="tokenRain" class="token-rain" aria-hidden="true"></div>
       <div id="gameOverlay" class="overlay">
         <div class="overlay-panel">
           <h2 id="overlayTitle">READY?</h2>
@@ -85,6 +86,15 @@
         <button id="laserButton" type="button" disabled>Laser: 0</button>
       </div>
       <p id="unlockStatus" aria-live="polite"></p>
+    </section>
+    <section class="customization-panel token-rain-panel" aria-labelledby="tokenRainTitle">
+      <h2 id="tokenRainTitle">Token rain (cosmetic)</h2>
+      <div class="token-rain-controls">
+        <input id="tokenImageInput" type="file" accept="image/png,image/jpeg,image/gif,image/webp">
+        <label class="token-image-button" for="tokenImageInput">Choose token image</label>
+        <button id="tokenRainButton" type="button" disabled>Rain tokens</button>
+      </div>
+      <p id="tokenRainStatus" class="token-rain-status" aria-live="polite">Choose a PNG, JPG, GIF, or WebP image to get started.</p>
     </section>
     <section class="achievement-panel" aria-labelledby="achievementsTitle">
       <h2 id="achievementsTitle">Achievements</h2>
