@@ -710,21 +710,7 @@ const achievementList = document.getElementById("achievementList");
 const tokenRainButton = document.getElementById("tokenRainButton");
 const tokenRainStatus = document.getElementById("tokenRainStatus");
 const tokenRain = document.getElementById("tokenRain");
-const tokenOwnerPanel = document.getElementById("tokenOwnerPanel");
-const tokenOwnerLogin = document.getElementById("tokenOwnerLogin");
-const tokenOwnerEmail = document.getElementById("tokenOwnerEmail");
-const tokenOwnerPassword = document.getElementById("tokenOwnerPassword");
-const tokenOwnerUpload = document.getElementById("tokenOwnerUpload");
-const tokenOwnerImage = document.getElementById("tokenOwnerImage");
-const tokenOwnerSignOut = document.getElementById("tokenOwnerSignOut");
-const tokenOwnerStatus = document.getElementById("tokenOwnerStatus");
-const tokenConfig = window.SHARED_MUSIC_CONFIG || {};
-const tokenServiceUrl = (tokenConfig.supabaseUrl || "").replace(/\/+$/, "");
-const tokenAnonKey = tokenConfig.anonKey || "";
-const tokenBucket = tokenConfig.tokenBucket || "game-token";
-const tokenOwnerEmailAddress = (tokenConfig.ownerEmail || "").trim().toLowerCase();
 let tokenImageData = "";
-let tokenOwnerAccessToken = "";
 
 function refreshAchievementDisplay() {
   achievementList.replaceChildren();
@@ -842,134 +828,22 @@ function fireLaser() {
   updateAbilityControls();
 }
 
-function tokenStorageEndpoint(path) {
-  return `${tokenServiceUrl}/storage/v1/${path}`;
-}
-
-async function tokenStorageError(response) {
-  const payload = await response.json().catch(() => ({}));
-  return payload.message || payload.msg || response.statusText;
-}
-
-function loadSharedTokenImage() {
+function loadTokenImage() {
   tokenRainButton.disabled = true;
-  if (!tokenServiceUrl || !tokenAnonKey) {
-    tokenRainStatus.textContent = "Shared token image storage is not configured.";
-    return;
-  }
-
   const image = new Image();
   image.addEventListener("load", function () {
     tokenImageData = image.src;
     tokenRainButton.disabled = false;
-    tokenRainStatus.textContent = "Shared image ready. Token rain is cosmetic and won't affect the game.";
+    tokenRainStatus.textContent = "Image ready. Token rain is cosmetic and won't affect the game.";
   }, { once: true });
   image.addEventListener("error", function () {
     tokenImageData = "";
-    tokenRainStatus.textContent = "No shared token image is available yet. The owner can upload one below.";
+    tokenRainStatus.textContent = "Image missing. Add pirate-token.png beside index.html in the GitHub project.";
   }, { once: true });
-  image.src = `${tokenStorageEndpoint(
-    `object/public/${encodeURIComponent(tokenBucket)}/pirate-token`
-  )}?t=${Date.now()}`;
+  image.src = "pirate-token.png";
 }
 
-tokenOwnerPanel.hidden = !tokenServiceUrl || !tokenAnonKey || !tokenOwnerEmailAddress;
-tokenOwnerLogin.addEventListener("submit", async function (event) {
-  event.preventDefault();
-  const password = tokenOwnerPassword.value;
-  tokenOwnerPassword.value = "";
-  tokenOwnerStatus.textContent = "Signing in...";
-
-  try {
-    const response = await fetch(`${tokenServiceUrl}/auth/v1/token?grant_type=password`, {
-      method: "POST",
-      headers: { apikey: tokenAnonKey, "Content-Type": "application/json" },
-      body: JSON.stringify({ email: tokenOwnerEmail.value, password })
-    });
-    if (!response.ok) {
-      throw new Error(await tokenStorageError(response));
-    }
-
-    const session = await response.json();
-    if (session.user?.email?.trim().toLowerCase() !== tokenOwnerEmailAddress) {
-      tokenOwnerStatus.textContent = "This account is not authorized to manage the shared image.";
-      return;
-    }
-
-    tokenOwnerAccessToken = session.access_token;
-    tokenOwnerLogin.hidden = true;
-    tokenOwnerUpload.hidden = false;
-    tokenOwnerStatus.textContent = "Signed in as owner. Choose an image to upload or replace the shared token.";
-  } catch (error) {
-    tokenOwnerStatus.textContent = `Sign-in failed: ${error.message}`;
-  }
-});
-
-tokenOwnerUpload.addEventListener("submit", async function (event) {
-  event.preventDefault();
-  const file = tokenOwnerImage.files[0];
-  if (!tokenOwnerAccessToken) {
-    tokenOwnerStatus.textContent = "Sign in with the configured owner account before uploading.";
-    return;
-  }
-  if (!file || !["image/png", "image/jpeg", "image/gif", "image/webp"].includes(file.type)) {
-    tokenOwnerStatus.textContent = "Choose a PNG, JPG, GIF, or WebP image.";
-    return;
-  }
-  if (file.size > 10 * 1024 * 1024) {
-    tokenOwnerStatus.textContent = "The image must be smaller than 10 MB.";
-    return;
-  }
-
-  const uploadButton = tokenOwnerUpload.querySelector('button[type="submit"]');
-  uploadButton.disabled = true;
-  try {
-    const previewUrl = URL.createObjectURL(file);
-    try {
-      await new Promise((resolve, reject) => {
-        const preview = new Image();
-        preview.addEventListener("load", resolve, { once: true });
-        preview.addEventListener("error", () => reject(new Error("That image could not be opened.")), { once: true });
-        preview.src = previewUrl;
-      });
-    } finally {
-      URL.revokeObjectURL(previewUrl);
-    }
-
-    const response = await fetch(tokenStorageEndpoint(
-      `object/${encodeURIComponent(tokenBucket)}/pirate-token`
-    ), {
-      method: "POST",
-      headers: {
-        apikey: tokenAnonKey,
-        Authorization: `Bearer ${tokenOwnerAccessToken}`,
-        "Content-Type": file.type,
-        "x-upsert": "true"
-      },
-      body: file
-    });
-    if (!response.ok) {
-      throw new Error(await tokenStorageError(response));
-    }
-
-    tokenOwnerImage.value = "";
-    tokenOwnerStatus.textContent = "Shared token image uploaded.";
-    loadSharedTokenImage();
-  } catch (error) {
-    tokenOwnerStatus.textContent = `Upload failed: ${error.message}`;
-  } finally {
-    uploadButton.disabled = false;
-  }
-});
-
-tokenOwnerSignOut.addEventListener("click", function () {
-  tokenOwnerAccessToken = "";
-  tokenOwnerUpload.hidden = true;
-  tokenOwnerLogin.hidden = false;
-  tokenOwnerStatus.textContent = "Signed out.";
-});
-
-loadSharedTokenImage();
+loadTokenImage();
 
 tokenRainButton.addEventListener("click", function () {
   if (!tokenImageData) {
