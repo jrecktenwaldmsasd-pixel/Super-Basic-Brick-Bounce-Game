@@ -90,11 +90,31 @@
     <section class="customization-panel token-rain-panel" aria-labelledby="tokenRainTitle">
       <h2 id="tokenRainTitle">Token rain (cosmetic)</h2>
       <div class="token-rain-controls">
-        <input id="tokenImageInput" type="file" accept="image/png,image/jpeg,image/gif,image/webp">
-        <label class="token-image-button" for="tokenImageInput">Choose token image</label>
         <button id="tokenRainButton" type="button" disabled>Rain tokens</button>
       </div>
-      <p id="tokenRainStatus" class="token-rain-status" aria-live="polite">Choose a PNG, JPG, GIF, or WebP image to get started.</p>
+      <p id="tokenRainStatus" class="token-rain-status" aria-live="polite">Loading the shared token image...</p>
+      <details id="tokenOwnerPanel" class="token-owner-panel" hidden>
+        <summary>Owner: manage token image</summary>
+        <form id="tokenOwnerLogin" class="token-owner-form">
+          <label>Email
+            <input id="tokenOwnerEmail" type="email" autocomplete="username" required>
+          </label>
+          <label>Password
+            <input id="tokenOwnerPassword" type="password" autocomplete="current-password" required>
+          </label>
+          <button type="submit">Sign in</button>
+        </form>
+        <form id="tokenOwnerUpload" class="token-owner-form" hidden>
+          <label>Token image
+            <input id="tokenOwnerImage" type="file" accept="image/png,image/jpeg,image/gif,image/webp" required>
+          </label>
+          <div class="token-owner-actions">
+            <button type="submit">Upload / replace image</button>
+            <button id="tokenOwnerSignOut" type="button">Sign out</button>
+          </div>
+        </form>
+        <p id="tokenOwnerStatus" class="token-rain-status" aria-live="polite"></p>
+      </details>
     </section>
     <section class="achievement-panel" aria-labelledby="achievementsTitle">
       <h2 id="achievementsTitle">Achievements</h2>
@@ -287,10 +307,10 @@
 
   <!-- The order matters: components.js defines data used by the game entities. -->
   <script src="components.js"></script>
+  <script src="shared-music-config.js"></script>
   <script src="game.js"></script>
   <script src="bricks.js"></script>
   <script src="collisions.js"></script>
-  <script src="shared-music-config.js"></script>
   <script src="music-player.js"></script>
   <script>
     function moveBallLeft(data) {
