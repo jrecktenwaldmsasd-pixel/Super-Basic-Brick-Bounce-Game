@@ -849,8 +849,8 @@ loadTokenImage();
 
 function updateTokenRainSongControls() {
   const isPlaying = !tokenRainAudio.paused && !tokenRainAudio.ended;
-  tokenRainButton.disabled = isPlaying || !tokenImageData;
-  stopTokenRainSongButton.disabled = !isPlaying;
+  tokenRainButton.disabled = !tokenImageData;
+  stopTokenRainSongButton.disabled = !isPlaying && !tokenRainAudio.ended;
 }
 
 tokenRainButton.addEventListener("click", function () {
@@ -879,14 +879,18 @@ tokenRainButton.addEventListener("click", function () {
     }, { once: true });
     tokenRain.append(drop);
   }
-  tokenRainButton.disabled = true;
-  stopTokenRainSongButton.disabled = false;
-  tokenRainStatus.textContent = "Token rain and song playing. The button will be ready when the song ends.";
-  tokenRainAudio.currentTime = 0;
-  tokenRainAudio.play().catch(function (error) {
-    updateTokenRainSongControls();
-    tokenRainStatus.textContent = `Token rain started, but the song could not play: ${error.message}`;
-  });
+  updateTokenRainSongControls();
+  if (tokenRainAudio.paused && !tokenRainAudio.ended && tokenRainAudio.currentTime === 0) {
+    tokenRainStatus.textContent = "Token rain started. The song will play once without restarting for each rain.";
+    tokenRainAudio.play().catch(function (error) {
+      updateTokenRainSongControls();
+      tokenRainStatus.textContent = `Token rain started, but the song could not play: ${error.message}`;
+    });
+  } else if (tokenRainAudio.ended) {
+    tokenRainStatus.textContent = "More tokens raining. The song has finished; stop it to reset and play it again.";
+  } else {
+    tokenRainStatus.textContent = "More tokens raining. The song keeps playing without restarting.";
+  }
 });
 
 stopTokenRainSongButton.addEventListener("click", function () {
@@ -900,7 +904,7 @@ tokenRainAudio.addEventListener("play", updateTokenRainSongControls);
 tokenRainAudio.addEventListener("pause", updateTokenRainSongControls);
 tokenRainAudio.addEventListener("ended", function () {
   updateTokenRainSongControls();
-  tokenRainStatus.textContent = "Song finished. Click Rain tokens to play it again.";
+  tokenRainStatus.textContent = "Song finished. Click Stop song to reset it, or keep raining tokens without music.";
 });
 tokenRainAudio.addEventListener("error", function () {
   updateTokenRainSongControls();
